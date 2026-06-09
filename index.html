@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Family Financial Planner</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #222636;
+      --surface3: #2a2f45;
+      --border: #2e3347;
+      --accent: #4f8ef7;
+      --accent2: #a78bfa;
+      --green: #34d399;
+      --red: #f87171;
+      --yellow: #fbbf24;
+      --orange: #fb923c;
+      --text: #e2e8f0;
+      --muted: #8892a4;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    header { background: linear-gradient(135deg, #1e2235, #252a3d); border-bottom: 1px solid var(--border); padding: 16px 28px; display: flex; align-items: center; gap: 14px; }
+    header h1 { font-size: 1.4rem; font-weight: 700; background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    header .sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    .tabs { display: flex; gap: 0; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 28px; overflow-x: auto; }
+    .tab-btn { padding: 13px 18px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--muted); cursor: pointer; font-size: 0.85rem; font-weight: 500; white-space: nowrap; transition: all 0.2s; }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .tab-content { display: none; padding: 24px 28px; max-width: 1400px; }
+    .tab-content.active { display: block; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 18px; }
+    .card-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+    .person-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 800px) { .person-grid { grid-template-columns: 1fr; } }
+
+    .person-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+    .person-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+    .person-card.person1 h3 { color: var(--accent); }
+    .person-card.person2 h3 { color: var(--accent2); }
+
+    .field-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .field-group-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .field { display: flex; flex-direction: column; gap: 3px; }
+
+    label { font-size: 0.7rem; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+
+    input[type="text"], input[type="number"], input[type="date"], select {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 7px; color: var(--text);
+      padding: 7px 9px; font-size: 0.875rem; width: 100%; transition: border-color 0.2s;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+
+    .prefix-input { position: relative; }
+    .prefix-input span { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.875rem; pointer-events: none; z-index: 1; }
+    .prefix-input input { padding-left: 20px; }
+    .suffix-input { position: relative; }
+    .suffix-input span { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.875rem; pointer-events: none; }
+    .suffix-input input { padding-right: 24px; }
+
+    .section-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 12px 0 7px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+    .btn { display: inline-flex; align-items: center; gap: 5px; padding: 8px 14px; border-radius: 7px; border: none; cursor: pointer; font-size: 0.82rem; font-weight: 500; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #3b7de8; }
+    .btn-danger { background: transparent; color: var(--red); border: 1px solid rgba(248,113,113,0.4); padding: 5px 9px; font-size: 0.75rem; }
+    .btn-danger:hover { background: rgba(248,113,113,0.1); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+    .btn-sm { padding: 5px 10px; font-size: 0.78rem; }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+    .summary-card .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 5px; }
+    .summary-card .value { font-size: 1.5rem; font-weight: 700; }
+    .summary-card .sub { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+
+    .value.green { color: var(--green); }
+    .value.red { color: var(--red); }
+    .value.accent { color: var(--accent); }
+    .value.purple { color: var(--accent2); }
+    .value.yellow { color: var(--yellow); }
+    .value.orange { color: var(--orange); }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+    @media (max-width: 900px) { .two-col, .three-col { grid-template-columns: 1fr; } }
+
+    .debts-list { display: flex; flex-direction: column; gap: 9px; }
+    .debt-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; transition: opacity 0.2s, border-color 0.2s; }
+    .debt-item.paid-off { opacity: 0.45; border-color: transparent; }
+    .debt-item.paid-this-month { border-color: rgba(52,211,153,0.45); background: rgba(52,211,153,0.04); }
+    .paid-check-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; background: none; border: 2px solid var(--border); border-radius: 9px; padding: 7px 10px; min-width: 62px; transition: all 0.18s; color: var(--muted); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .paid-check-btn:hover { border-color: var(--green); color: var(--green); }
+    .paid-check-btn.checked { background: rgba(52,211,153,0.12); border-color: var(--green); color: var(--green); }
+    .paid-check-btn .check-icon { font-size: 1.1rem; line-height: 1; }
+    .paid-off-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; background: none; border: 2px solid var(--border); border-radius: 9px; padding: 7px 10px; min-width: 62px; transition: all 0.18s; color: var(--muted); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .paid-off-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+    .paid-off-btn.active { background: rgba(167,139,250,0.12); border-color: var(--accent2); color: var(--accent2); }
+    .paid-off-btn .check-icon { font-size: 1.1rem; line-height: 1; }
+    .debt-item.paid-off .debt-item-main, .debt-item.paid-off .debt-item-stats { text-decoration: line-through; }
+    .paid-progress { font-size: 0.72rem; color: var(--muted); margin-top: 6px; }
+    .paid-summary-bar { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.82rem; margin-bottom: 12px; padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; align-items: center; }
+    .debt-item-main { flex: 1; min-width: 160px; }
+    .debt-item-stats { display: flex; gap: 16px; flex-wrap: wrap; }
+    .debt-stat .val { font-weight: 600; font-size: 0.875rem; }
+    .debt-stat .lbl { font-size: 0.68rem; color: var(--muted); }
+
+    .badge { font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .badge-bill { background: rgba(79,142,247,0.15); color: var(--accent); }
+    .badge-card { background: rgba(167,139,250,0.15); color: var(--accent2); }
+    .badge-loan { background: rgba(251,191,36,0.15); color: var(--yellow); }
+    .badge-mortgage { background: rgba(52,211,153,0.15); color: var(--green); }
+    .badge-subscription { background: rgba(251,146,60,0.15); color: var(--orange); }
+
+    .breakdown-list { list-style: none; }
+    .breakdown-list li { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+    .breakdown-list li:last-child { border-bottom: none; }
+    .breakdown-list .item-name { color: var(--muted); }
+    .breakdown-list .item-val { font-weight: 600; }
+
+    .progress-bar-wrap { background: var(--bg); border-radius: 999px; height: 8px; overflow: hidden; margin: 5px 0; }
+    .progress-bar { height: 100%; border-radius: 999px; transition: width 0.4s ease; }
+    .bar-green { background: var(--green); }
+    .bar-red { background: var(--red); }
+    .bar-accent { background: var(--accent); }
+    .bar-purple { background: var(--accent2); }
+    .bar-yellow { background: var(--yellow); }
+    .bar-orange { background: var(--orange); }
+
+    .alert { padding: 11px 14px; border-radius: 8px; font-size: 0.82rem; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 9px; }
+    .alert-warning { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); color: var(--yellow); }
+    .alert-success { background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3); color: var(--green); }
+    .alert-danger { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--red); }
+    .alert-info { background: rgba(79,142,247,0.1); border: 1px solid rgba(79,142,247,0.3); color: var(--accent); }
+
+    .payoff-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+    .payoff-table th { text-align: left; padding: 9px 11px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); border-bottom: 1px solid var(--border); }
+    .payoff-table td { padding: 9px 11px; border-bottom: 1px solid var(--border); }
+    .payoff-table tr:last-child td { border-bottom: none; }
+    .payoff-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+    .tip { font-size: 0.74rem; color: var(--muted); margin-top: 6px; }
+    .empty-state { text-align: center; padding: 28px; color: var(--muted); font-size: 0.85rem; }
+
+    .snowball-strategy { display: flex; gap: 8px; margin-bottom: 14px; }
+    .strategy-btn { flex: 1; padding: 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--muted); cursor: pointer; font-size: 0.78rem; font-weight: 500; text-align: center; transition: all 0.2s; }
+    .strategy-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,0.08); }
+
+    .total-row { display: flex; justify-content: space-between; font-weight: 700; padding: 9px 0; border-top: 2px solid var(--border); margin-top: 4px; font-size: 0.9rem; }
+
+    .goal-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 14px; margin-bottom: 9px; }
+    .goal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .goal-name { font-weight: 600; font-size: 0.9rem; }
+    .goal-amounts { font-size: 0.8rem; color: var(--muted); margin-bottom: 5px; }
+
+    .asset-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.875rem; }
+    .asset-item:last-child { border-bottom: none; }
+
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-day { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 6px; min-height: 70px; font-size: 0.72rem; }
+    .cal-day-num { font-weight: 700; font-size: 0.8rem; margin-bottom: 4px; color: var(--muted); }
+    .cal-day.today .cal-day-num { color: var(--accent); }
+    .cal-day.has-bill { border-color: rgba(248,113,113,0.3); }
+    .cal-bill { background: rgba(248,113,113,0.15); color: var(--red); border-radius: 4px; padding: 2px 5px; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.68rem; }
+    .cal-paycheck { background: rgba(52,211,153,0.15); color: var(--green); border-radius: 4px; padding: 2px 5px; margin-bottom: 2px; font-size: 0.68rem; }
+    .cal-header { text-align: center; font-size: 0.72rem; font-weight: 600; color: var(--muted); padding: 4px 0; text-transform: uppercase; letter-spacing: 0.04em; }
+
+    .name-input-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .name-input-row .field { flex: 1; min-width: 160px; }
+
+    .paycheck-section { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 14px; }
+    .paycheck-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+    .paycheck-row:last-child { border-bottom: none; }
+    .paycheck-row.total { font-weight: 700; font-size: 0.95rem; border-top: 2px solid var(--border); border-bottom: none; margin-top: 4px; padding-top: 8px; }
+    .paycheck-row.subtotal { font-weight: 600; }
+
+    .add-form { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+    .form-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 9px; align-items: end; }
+    @media (max-width: 1000px) { .form-row { grid-template-columns: 1fr 1fr; } }
+
+    .mortgage-detail { font-size: 0.75rem; color: var(--muted); margin-top: 3px; }
+
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    .range-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--muted); }
+
+    .pill-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+    .pill-tab { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
+    .pill-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .net-worth-bar { height: 16px; border-radius: 999px; background: var(--bg); overflow: hidden; display: flex; margin: 10px 0; }
+    .nw-assets { background: var(--green); transition: width 0.4s; }
+    .nw-debts { background: var(--red); transition: width 0.4s; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:1.7rem">💰</span>
+  <div>
+    <h1>Family Financial Planner</h1>
+    <div class="sub">Income · Debts · Budget · Payoff · Goals · Net Worth</div>
+  </div>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button class="btn btn-ghost btn-sm" onclick="exportData()">💾 Export</button>
+    <button class="btn btn-ghost btn-sm" onclick="importData()">📂 Import</button>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="loadImport(event)" />
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('income',this)">📊 Income</button>
+  <button class="tab-btn" onclick="showTab('debts',this)">💳 Debts & Bills</button>
+  <button class="tab-btn" onclick="showTab('budget',this)">📋 Budget</button>
+  <button class="tab-btn" onclick="showTab('payoff',this)">🎯 Payoff Plan</button>
+  <button class="tab-btn" onclick="showTab('goals',this)">🏆 Goals</button>
+  <button class="tab-btn" onclick="showTab('networth',this)">📈 Net Worth</button>
+  <button class="tab-btn" onclick="showTab('calendar',this)">📅 Calendar</button>
+  <button class="tab-btn" onclick="showTab('summary',this)">🧾 Summary</button>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     INCOME TAB
+════════════════════════════════════════════════════ -->
+<div id="tab-income" class="tab-content active">
+  <div class="name-input-row">
+    <div class="field">
+      <label>Your Name</label>
+      <input type="text" id="name1" value="Partner 1" oninput="updateNames();recalc()" />
+    </div>
+    <div class="field">
+      <label>Partner's Name</label>
+      <input type="text" id="name2" value="Partner 2" oninput="updateNames();recalc()" />
+    </div>
+    <div class="field">
+      <label>Pay Period</label>
+      <select id="payPeriod" onchange="recalc()">
+        <option value="52">Weekly</option>
+        <option value="26">Bi-Weekly</option>
+        <option value="24">Semi-Monthly</option>
+        <option value="12" selected>Monthly</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Payday (day of month)</label>
+      <input type="number" id="payday1" value="15" min="1" max="31" oninput="renderCalendar()" placeholder="15" />
+    </div>
+    <div class="field">
+      <label>2nd Payday (if bi-weekly)</label>
+      <input type="number" id="payday2" value="30" min="1" max="31" oninput="renderCalendar()" placeholder="30" />
+    </div>
+  </div>
+
+  <div class="person-grid">
+    <!-- PARTNER 1 -->
+    <div class="person-card person1">
+      <h3 id="card-name1">Partner 1</h3>
+
+      <div class="section-label" style="border-top:none;margin-top:0;padding-top:0">Regular Pay</div>
+      <div class="field-group">
+        <div class="field"><label>Hourly Rate</label><div class="prefix-input"><span>$</span><input type="number" id="p1-hourly" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+        <div class="field"><label>Regular Hours / Period</label><input type="number" id="p1-regHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
+      </div>
+
+      <div class="section-label">Overtime</div>
+      <div class="field-group-3">
+        <div class="field"><label>OT Multiplier</label><div class="suffix-input"><input type="number" id="p1-otMult" value="1.5" min="1" step="0.25" oninput="recalc()" /><span>×</span></div></div>
+        <div class="field"><label>OT Hours / Period</label><input type="number" id="p1-otHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
+        <div class="field"><label>OT Rate (auto)</label><input type="number" id="p1-otRate" placeholder="0.00" min="0" step="0.01" readonly style="background:var(--surface3);color:var(--muted)" /></div>
+      </div>
+
+      <div class="section-label">Incentive Pay</div>
+      <div class="field-group">
+        <div class="field"><label>Incentive Rate / hr</label><div class="prefix-input"><span>$</span><input type="number" id="p1-incentiveRate" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+        <div class="field"><label>Incentive Hours</label><input type="number" id="p1-incentiveHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
+      </div>
+
+      <div class="section-label">On-Call &amp; Callback Pay</div>
+      <div class="field-group">
+        <div class="field"><label>Call Rate / hr</label><div class="prefix-input"><span>$</span><input type="number" id="p1-callRate" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+        <div class="field"><label>Call Hours</label><input type="number" id="p1-callHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
+      </div>
+      <div class="field-group">
+        <div class="field"><label>Callback Rate / hr</label><div class="prefix-input"><span>$</span><input type="number" id="p1-callbackRate" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+        <div class="field"><label>Callback Hours</label><input type="number" id="p1-callbackHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
+      </div>
+
+      <div class="section-label">Bonuses</div>
+      <div class="field-group">
+        <div class="field"><label>Recurring Bonus / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p1-bonus" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+        <div class="field"><label>One-Time Bonus (this period)</label><div class="prefix-input"><span>$</span><input type="number" id="p1-oneTimeBonus" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+      </div>
+
+      <div class="section-label">Pre-Tax Deductions</div>
+      <div class="field-group">
+        <div class="field"><label>401k / Retirement %</label><div class="suffix-input"><input type="number" id="p1-retirement" placeholder="0" min="0" max="100" step="0.5" oninput="recalc()" /><span>%</span></div></div>
+        <div class="field"><label>Health Insurance / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p1-health" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+      </div>
+      <div class="field-group">
+        <div class="field"><label>Dental / Vision / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p1-dental" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+        <div class="field"><label>Other Pre-Tax / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p1-otherPretax" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+      </div>
+
+      <div class="section-label">Tax</div>
+      <div class="field-group">
+        <div class="field"><label>Fed + State Tax Rate %</label><div class="suffix-input"><input type="number" id="p1-tax" value="22" min="0" max="60" step="0.5" oninput="recalc()" /><span>%</span></div></div>
+        <div class="field"><label>FICA (Social Sec + Medicare)</label><div class="suffix-input"><input type="number" id="p1-fica" value="7.65" min="0" max="20" step="0.01" oninput="recalc()" /><span>%</span></div></div>
+      </div>
+
+      <hr class="divider" />
+      <div id="p1-paycheck-summary"></div>
+    </div>
+
+    <!-- PARTNER 2 -->
+    <div class="person-card person2">
+      <h3 id="card-name2">Partner 2</h3>
+
+      <div class="section-label" style="border-top:none;margin-top:0;padding-top:0">Regular Pay</div>
+      <div class="field-group">
+        <div class="field"><label>Hourly Rate</label><div class="prefix-input"><span>$</span><input type="number" id="p2-hourly" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+        <div class="field"><label>Regular Hours / Period</label><input type="number" id="p2-regHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
+      </div>
+
+      <div class="section-label">Overtime</div>
+      <div class="field-group-3">
+        <div class="field"><label>OT Multiplier</label><div class="suffix-input"><input type="number" id="p2-otMult" value="1.5" min="1" step="0.25" oninput="recalc()" /><span>×</span></div></div>
+        <div class="field"><label>OT Hours / Period</label><input type="number" id="p2-otHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
+        <div class="field"><label>OT Rate (auto)</label><input type="number" id="p2-otRate" placeholder="0.00" min="0" step="0.01" readonly style="background:var(--surface3);color:var(--muted)" /></div>
+      </div>
+
+      <div class="section-label">Incentive Pay</div>
+      <div class="field-group">
+        <div class="field"><label>Incentive Rate / hr</label><div class="prefix-input"><span>$</span><input type="number" id="p2-incentiveRate" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+        <div class="field"><label>Incentive Hours</label><input type="number" id="p2-incentiveHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
+      </div>
+
+      <div class="section-label">On-Call &amp; Callback Pay</div>
+      <div class="field-group">
+        <div class="field"><label>Call Rate / hr</label><div class="prefix-input"><span>$</span><input type="number" id="p2-callRate" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+        <div class="field"><label>Call Hours</label><input type="number" id="p2-callHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
+      </div>
+      <div class="field-group">
+        <div class="field"><label>Callback Rate / hr</label><div class="prefix-input"><span>$</span><input type="number" id="p2-callbackRate" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+        <div class="field"><label>Callback Hours</label><input type="number" id="p2-callbackHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
+      </div>
+
+      <div class="section-label">Bonuses</div>
+      <div class="field-group">
+        <div class="field"><label>Recurring Bonus / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p2-bonus" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+        <div class="field"><label>One-Time Bonus (this period)</label><div class="prefix-input"><span>$</span><input type="number" id="p2-oneTimeBonus" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+      </div>
+
+      <div class="section-label">Pre-Tax Deductions</div>
+      <div class="field-group">
+        <div class="field"><label>401k / Retirement %</label><div class="suffix-input"><input type="number" id="p2-retirement" placeholder="0" min="0" max="100" step="0.5" oninput="recalc()" /><span>%</span></div></div>
+        <div class="field"><label>Health Insurance / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p2-health" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+      </div>
+      <div class="field-group">
+        <div class="field"><label>Dental / Vision / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p2-dental" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+        <div class="field"><label>Other Pre-Tax / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p2-otherPretax" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+      </div>
+
+      <div class="section-label">Tax</div>
+      <div class="field-group">
+        <div class="field"><label>Fed + State Tax Rate %</label><div class="suffix-input"><input type="number" id="p2-tax" value="22" min="0" max="60" step="0.5" oninput="recalc()" /><span>%</span></div></div>
+        <div class="field"><label>FICA (Social Sec + Medicare)</label><div class="suffix-input"><input type="number" id="p2-fica" value="7.65" min="0" max="20" step="0.01" oninput="recalc()" /><span>%</span></div></div>
+      </div>
+
+      <hr class="divider" />
+      <div id="p2-paycheck-summary"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:4px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">COMBINED NET / PERIOD</div>
+        <div id="combined-net" style="font-size:2rem;font-weight:800;color:var(--green)">$0.00</div>
+        <div id="combined-net-monthly" style="font-size:0.8rem;color:var(--muted);margin-top:2px"></div>
+      </div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div style="text-align:right">
+          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:3px">Annual Gross</div>
+          <div id="combined-annual" style="font-size:1.2rem;font-weight:700"></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:3px">Annual Net</div>
+          <div id="combined-annual-net" style="font-size:1.2rem;font-weight:700;color:var(--green)"></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:3px">Total 401k / Period</div>
+          <div id="combined-retirement" style="font-size:1.2rem;font-weight:700;color:var(--accent2)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     DEBTS TAB
+════════════════════════════════════════════════════ -->
+<div id="tab-debts" class="tab-content">
+  <div class="add-form">
+    <div style="font-size:0.85rem;font-weight:600;margin-bottom:12px;color:var(--text)">Add Debt, Bill, or Subscription</div>
+    <div class="form-row">
+      <div class="field"><label>Name</label><input type="text" id="debt-name" placeholder="e.g. Mortgage, Visa, Netflix" /></div>
+      <div class="field"><label>Type</label>
+        <select id="debt-type" onchange="toggleMortgageFields()">
+          <option value="mortgage">Mortgage</option>
+          <option value="bill">Bill</option>
+          <option value="card">Credit Card</option>
+          <option value="loan">Loan</option>
+          <option value="subscription">Subscription</option>
+        </select>
+      </div>
+      <div class="field"><label>Min. Payment / mo</label><div class="prefix-input"><span>$</span><input type="number" id="debt-payment" placeholder="0.00" min="0" step="0.01" /></div></div>
+      <div class="field"><label>Balance Owed</label><div class="prefix-input"><span>$</span><input type="number" id="debt-balance" placeholder="0.00" min="0" step="1" /></div></div>
+      <div class="field"><label>APR %</label><input type="number" id="debt-apr" placeholder="0.0" min="0" step="0.01" /></div>
+      <div class="field"><label>Due Day (1-31)</label><input type="number" id="debt-dueday" placeholder="1" min="1" max="31" /></div>
+    </div>
+    <div id="mortgage-extra-fields" style="display:none;margin-top:10px;">
+      <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">Mortgage Details (optional — for amortization breakdown)</div>
+      <div class="field-group-3">
+        <div class="field"><label>Original Loan Amount</label><div class="prefix-input"><span>$</span><input type="number" id="mort-original" placeholder="0" min="0" step="1000" /></div></div>
+        <div class="field"><label>Loan Term (years)</label><input type="number" id="mort-term" placeholder="30" min="1" max="50" /></div>
+        <div class="field"><label>Start Date</label><input type="date" id="mort-startdate" /></div>
+      </div>
+    </div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-primary" onclick="addDebt()">+ Add</button>
+      <p class="tip">Leave Balance and APR blank for flat monthly bills. Set Due Day to track in the calendar.</p>
+    </div>
+  </div>
+
+  <div id="paid-summary-bar" style="display:none" class="paid-summary-bar">
+    <span style="font-weight:600;color:var(--text)">📅 <span id="paid-month-label"></span></span>
+    <span>✅ Paid: <strong id="paid-count" style="color:var(--green)">0</strong> of <strong id="paid-total-count">0</strong></span>
+    <span>💸 Paid this month: <strong id="paid-amount" style="color:var(--green)">$0.00</strong></span>
+    <span>⏳ Still owed: <strong id="unpaid-amount" style="color:var(--red)">$0.00</strong></span>
+    <button class="btn btn-ghost btn-sm" onclick="markAllPaidThisMonth()" style="margin-left:auto">✅ Mark All Paid</button>
+    <button class="btn btn-ghost btn-sm" onclick="clearAllPaidThisMonth()">↺ Clear Month</button>
+  </div>
+  <div id="debts-list" class="debts-list"><div class="empty-state">No debts added yet.</div></div>
+
+  <div id="debt-totals" style="display:none;" class="card">
+    <div class="total-row"><span>Total Monthly Payments</span><span id="total-monthly-payments" style="color:var(--red)">$0.00</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:0.85rem;"><span style="color:var(--muted)">Total Debt Balance</span><span id="total-balance" style="color:var(--yellow);font-weight:600">$0.00</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:0.85rem;"><span style="color:var(--muted)">Est. Annual Interest Cost</span><span id="total-annual-interest" style="color:var(--orange);font-weight:600">$0.00</span></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     BUDGET TAB
+════════════════════════════════════════════════════ -->
+<div id="tab-budget" class="tab-content">
+  <div class="summary-grid">
+    <div class="summary-card"><div class="label">Monthly Net Income</div><div class="value green" id="bud-income">$0.00</div><div class="sub">Combined take-home</div></div>
+    <div class="summary-card"><div class="label">Fixed Obligations</div><div class="value red" id="bud-fixed">$0.00</div><div class="sub">Bills + min. payments</div></div>
+    <div class="summary-card"><div class="label">Remaining</div><div class="value accent" id="bud-remaining">$0.00</div><div class="sub">After fixed obligations</div></div>
+    <div class="summary-card"><div class="label">Debt-to-Income</div><div class="value yellow" id="bud-ratio">0%</div><div class="sub">Fixed / net income</div></div>
+    <div class="summary-card"><div class="label">Monthly 401k Savings</div><div class="value purple" id="bud-retirement">$0.00</div><div class="sub">Pre-tax retirement contributions</div></div>
+  </div>
+
+  <div id="budget-alert"></div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">50/30/20 Budget Guide</div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:14px">A recommended split of your monthly net income:</p>
+
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:0.85rem">
+          <span>🏠 Needs (50%) — housing, food, bills, min. payments</span>
+          <span id="needs-val" style="font-weight:600;color:var(--accent)">$0</span>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar bar-accent" style="width:50%"></div></div>
+      </div>
+
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:0.85rem">
+          <span>🎉 Wants (30%) — dining, entertainment, hobbies</span>
+          <span id="wants-val" style="font-weight:600;color:var(--accent2)">$0</span>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar bar-purple" style="width:30%"></div></div>
+      </div>
+
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:0.85rem">
+          <span>💾 Savings &amp; Extra Debt Payoff (20%)</span>
+          <span id="savings-val" style="font-weight:600;color:var(--green)">$0</span>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar bar-green" style="width:20%"></div></div>
+      </div>
+
+      <hr class="divider" />
+      <div style="font-size:0.8rem;font-weight:600;margin-bottom:8px">Your Actual Spending vs. Guide</div>
+      <div id="spending-comparison" style="font-size:0.82rem;color:var(--muted)">Enter income and debts to see comparison.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Custom Budget Categories</div>
+      <div id="custom-budget-list"><div class="empty-state" style="padding:12px">Add categories below.</div></div>
+      <div id="custom-budget-total" class="total-row" style="display:none"><span>Total Allocated</span><span id="custom-total-val" style="color:var(--accent)">$0.00</span></div>
+      <hr class="divider" />
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:end">
+        <div class="field"><label>Category</label><input type="text" id="bcat-name" placeholder="e.g. Groceries, Gas" /></div>
+        <div class="field"><label>Amount / mo</label><div class="prefix-input"><span>$</span><input type="number" id="bcat-amount" placeholder="0" min="0" step="1" /></div></div>
+        <div class="field"><label>&nbsp;</label><button class="btn btn-primary" onclick="addBudgetCat()">+ Add</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAYOFF TAB
+════════════════════════════════════════════════════ -->
+<div id="tab-payoff" class="tab-content">
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+      <div>
+        <div class="card-title">Extra Monthly Payment</div>
+        <div class="field"><label>Extra Payment / mo</label><div class="prefix-input"><span>$</span><input type="number" id="extra-payment" value="0" min="0" step="10" oninput="recalcPayoff()" /></div></div>
+        <p class="tip" style="margin-top:8px">This amount is applied on top of all minimum payments, rolled to the next debt when one is paid off.</p>
+      </div>
+      <div>
+        <div class="card-title">Strategy</div>
+        <div class="snowball-strategy">
+          <div class="strategy-btn active" id="btn-snowball" onclick="setStrategy('snowball')">❄️ Debt Snowball<br><small>Lowest balance first</small></div>
+          <div class="strategy-btn" id="btn-avalanche" onclick="setStrategy('avalanche')">🌊 Debt Avalanche<br><small>Highest APR first</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Payoff Timeline</div>
+    <div id="payoff-content"><div class="empty-state">Add debts with balances and APR on the Debts tab.</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Interest &amp; Time Savings</div>
+    <div id="interest-savings-content"><div class="empty-state">Add debts to see savings estimates.</div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     GOALS TAB
+════════════════════════════════════════════════════ -->
+<div id="tab-goals" class="tab-content">
+  <div class="add-form">
+    <div style="font-size:0.85rem;font-weight:600;margin-bottom:12px">Add Savings Goal</div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:9px;align-items:end">
+      <div class="field"><label>Goal Name</label><input type="text" id="goal-name" placeholder="e.g. Emergency Fund, Vacation, New Car" /></div>
+      <div class="field"><label>Target Amount</label><div class="prefix-input"><span>$</span><input type="number" id="goal-target" placeholder="0" min="0" step="100" /></div></div>
+      <div class="field"><label>Already Saved</label><div class="prefix-input"><span>$</span><input type="number" id="goal-saved" placeholder="0" min="0" step="1" /></div></div>
+      <div class="field"><label>Monthly Contribution</label><div class="prefix-input"><span>$</span><input type="number" id="goal-contrib" placeholder="0" min="0" step="10" /></div></div>
+      <div class="field"><label>&nbsp;</label><button class="btn btn-primary" onclick="addGoal()">+ Add</button></div>
+    </div>
+  </div>
+
+  <div id="goals-list"><div class="empty-state">No goals added yet. Set up your emergency fund, vacation fund, or any other savings target.</div></div>
+
+  <div class="card" style="margin-top:4px">
+    <div class="card-title">Recommended Goals</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;font-size:0.82rem">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px">
+        <div style="font-weight:600;margin-bottom:4px">🛡️ Emergency Fund</div>
+        <div style="color:var(--muted)">3–6 months of net income. First priority before aggressive debt payoff.</div>
+        <div id="rec-emergency" style="color:var(--accent);font-weight:600;margin-top:6px"></div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px">
+        <div style="font-weight:600;margin-bottom:4px">🏦 401k Match</div>
+        <div style="color:var(--muted)">Always contribute enough to get your full employer match — it's free money.</div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px">
+        <div style="font-weight:600;margin-bottom:4px">🏠 Home / Repair Fund</div>
+        <div style="color:var(--muted)">Budget 1% of home value per year for maintenance and unexpected repairs.</div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px">
+        <div style="font-weight:600;margin-bottom:4px">🎓 Education / Kids</div>
+        <div style="color:var(--muted)">Consider a 529 plan. Even small monthly contributions grow significantly over time.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     NET WORTH TAB
+════════════════════════════════════════════════════ -->
+<div id="tab-networth" class="tab-content">
+  <div class="summary-grid" style="margin-bottom:20px">
+    <div class="summary-card"><div class="label">Total Assets</div><div class="value green" id="nw-assets">$0.00</div></div>
+    <div class="summary-card"><div class="label">Total Liabilities</div><div class="value red" id="nw-liabilities">$0.00</div></div>
+    <div class="summary-card"><div class="label">Net Worth</div><div class="value accent" id="nw-networth">$0.00</div></div>
+    <div class="summary-card"><div class="label">Assets / Liabilities Ratio</div><div class="value" id="nw-ratio" style="color:var(--yellow)">—</div></div>
+  </div>
+
+  <div style="margin-bottom:20px">
+    <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--muted);margin-bottom:5px">
+      <span id="nw-bar-assets-label">Assets $0</span>
+      <span id="nw-bar-debts-label">Liabilities $0</span>
+    </div>
+    <div class="net-worth-bar">
+      <div class="nw-assets" id="nw-bar-assets" style="width:50%"></div>
+      <div class="nw-debts" id="nw-bar-debts" style="width:50%"></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">🟢 Assets</div>
+      <div id="assets-list"><div class="empty-state" style="padding:12px">Add assets below.</div></div>
+      <div id="assets-total" class="total-row" style="display:none"><span>Total Assets</span><span id="assets-total-val" style="color:var(--green)">$0.00</span></div>
+      <hr class="divider" />
+      <div style="display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:end">
+        <div class="field"><label>Asset Name</label><input type="text" id="asset-name" placeholder="e.g. Home, Savings, 401k, Car" /></div>
+        <div class="field"><label>Value</label><div class="prefix-input"><span>$</span><input type="number" id="asset-value" placeholder="0" min="0" step="100" /></div></div>
+        <div class="field"><label>&nbsp;</label><button class="btn btn-primary" onclick="addAsset()">+ Add</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔴 Liabilities</div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:12px">These are auto-populated from your Debts tab. Add any additional liabilities here.</p>
+      <div id="liabilities-from-debts"><div class="empty-state" style="padding:12px">No debts entered yet.</div></div>
+      <hr class="divider" />
+      <div style="display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:end">
+        <div class="field"><label>Additional Liability</label><input type="text" id="liab-name" placeholder="e.g. Medical Bill" /></div>
+        <div class="field"><label>Amount Owed</label><div class="prefix-input"><span>$</span><input type="number" id="liab-value" placeholder="0" min="0" step="100" /></div></div>
+        <div class="field"><label>&nbsp;</label><button class="btn btn-primary" onclick="addLiability()">+ Add</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     CALENDAR TAB
+════════════════════════════════════════════════════ -->
+<div id="tab-calendar" class="tab-content">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="btn btn-ghost btn-sm" onclick="changeMonth(-1)">‹ Prev</button>
+      <span id="cal-month-label" style="font-weight:600;font-size:1rem;min-width:160px;text-align:center"></span>
+      <button class="btn btn-ghost btn-sm" onclick="changeMonth(1)">Next ›</button>
+    </div>
+    <div style="display:flex;gap:14px;font-size:0.78rem">
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:5px"></span>Paycheck</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--red);border-radius:2px;margin-right:5px"></span>Bill Due</span>
+    </div>
+  </div>
+  <div class="calendar-grid" style="margin-bottom:8px">
+    <div class="cal-header">Sun</div><div class="cal-header">Mon</div><div class="cal-header">Tue</div>
+    <div class="cal-header">Wed</div><div class="cal-header">Thu</div><div class="cal-header">Fri</div><div class="cal-header">Sat</div>
+  </div>
+  <div class="calendar-grid" id="cal-grid"></div>
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">This Month's Cash Flow</div>
+    <div id="cal-cashflow"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SUMMARY TAB
+════════════════════════════════════════════════════ -->
+<div id="tab-summary" class="tab-content">
+  <div class="summary-grid">
+    <div class="summary-card"><div class="label">Combined Monthly Net</div><div class="value green" id="sum-net">$0.00</div></div>
+    <div class="summary-card"><div class="label">Monthly Debt Payments</div><div class="value red" id="sum-debt">$0.00</div></div>
+    <div class="summary-card"><div class="label">Monthly Surplus</div><div class="value accent" id="sum-surplus">$0.00</div></div>
+    <div class="summary-card"><div class="label">Total Debt Balance</div><div class="value yellow" id="sum-balance">$0.00</div></div>
+    <div class="summary-card"><div class="label">Net Worth</div><div class="value" id="sum-networth" style="color:var(--accent2)">$0.00</div></div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Income Breakdown</div>
+      <ul class="breakdown-list" id="sum-income-list"></ul>
+    </div>
+    <div class="card">
+      <div class="card-title">Debt Snapshot</div>
+      <ul class="breakdown-list" id="sum-debt-list"><li><span class="item-name">No debts</span><span>—</span></li></ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Financial Health Indicators</div>
+    <div id="health-indicators"></div>
+  </div>
+
+  <div class="card" style="margin-top:4px">
+    <div class="card-title">Action Items</div>
+    <div id="action-items"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let debts = [];
+let budgetCats = [];
+let goals = [];
+let assets = [];
+let extraLiabilities = [];
+let payoffStrategy = 'snowball';
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+function gv(id) { return parseFloat(document.getElementById(id)?.value) || 0; }
+function gs(id) { return document.getElementById(id)?.value || ''; }
+function fmt(v) { return '$' + Math.abs(v).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function periodsPerYear() { return parseInt(gs('payPeriod')) || 12; }
+
+function calcPerson(p) {
+  const hourly = gv(p+'-hourly');
+  const regHours = gv(p+'-regHours');
+  const otMult = gv(p+'-otMult') || 1.5;
+  const otHours = gv(p+'-otHours');
+  const otRate = hourly * otMult;
+
+  // Update auto OT rate display
+  const otRateEl = document.getElementById(p+'-otRate');
+  if (otRateEl) otRateEl.value = otRate > 0 ? otRate.toFixed(2) : '';
+
+  const reg = hourly * regHours;
+  const ot = otRate * otHours;
+  const incentive = gv(p+'-incentiveRate') * gv(p+'-incentiveHours');
+  const call = gv(p+'-callRate') * gv(p+'-callHours');
+  const callback = gv(p+'-callbackRate') * gv(p+'-callbackHours');
+  const bonus = gv(p+'-bonus');
+  const oneTime = gv(p+'-oneTimeBonus');
+  const gross = reg + ot + incentive + call + callback + bonus + oneTime;
+
+  const retirePct = gv(p+'-retirement') / 100;
+  const retireAmt = gross * retirePct;
+  const health = gv(p+'-health');
+  const dental = gv(p+'-dental');
+  const otherPretax = gv(p+'-otherPretax');
+  const totalPretax = retireAmt + health + dental + otherPretax;
+  const taxableGross = Math.max(0, gross - totalPretax);
+
+  const taxRate = gv(p+'-tax') / 100;
+  const ficaRate = gv(p+'-fica') / 100;
+  const fedTax = taxableGross * taxRate;
+  const fica = gross * ficaRate;
+  const totalTax = fedTax + fica;
+
+  const net = gross - totalPretax - totalTax;
+
+  return { reg, ot, incentive, call, callback, bonus, oneTime, gross, retireAmt, health, dental, otherPretax, totalPretax, taxableGross, fedTax, fica, totalTax, net, otRate, hourly, otMult };
+}
+
+function renderPaycheckSummary(p, data, elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = `
+    <div class="paycheck-section">
+      <div class="paycheck-row"><span style="color:var(--muted)">Regular Pay</span><span>${fmt(data.reg)}</span></div>
+      ${data.ot > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">Overtime (${gv(p+'-otHours')}h @ ${fmt(data.otRate)}/hr)</span><span style="color:var(--yellow)">${fmt(data.ot)}</span></div>` : ''}
+      ${data.incentive > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">Incentive Pay</span><span>${fmt(data.incentive)}</span></div>` : ''}
+      ${data.call > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">On-Call Pay</span><span>${fmt(data.call)}</span></div>` : ''}
+      ${data.callback > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">Callback Pay</span><span>${fmt(data.callback)}</span></div>` : ''}
+      ${data.bonus > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">Recurring Bonus</span><span>${fmt(data.bonus)}</span></div>` : ''}
+      ${data.oneTime > 0 ? `<div class="paycheck-row"><span style="color:var(--yellow)">⚡ One-Time Bonus</span><span style="color:var(--yellow)">${fmt(data.oneTime)}</span></div>` : ''}
+      <div class="paycheck-row subtotal"><span>Gross Pay</span><span>${fmt(data.gross)}</span></div>
+      ${data.retireAmt > 0 ? `<div class="paycheck-row"><span style="color:var(--accent2)">401k / Retirement</span><span style="color:var(--accent2)">-${fmt(data.retireAmt)}</span></div>` : ''}
+      ${data.health > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">Health Insurance</span><span>-${fmt(data.health)}</span></div>` : ''}
+      ${data.dental > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">Dental / Vision</span><span>-${fmt(data.dental)}</span></div>` : ''}
+      ${data.otherPretax > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">Other Pre-Tax</span><span>-${fmt(data.otherPretax)}</span></div>` : ''}
+      <div class="paycheck-row"><span style="color:var(--red)">Fed + State Tax (${gv(p+'-tax')}%)</span><span style="color:var(--red)">-${fmt(data.fedTax)}</span></div>
+      <div class="paycheck-row"><span style="color:var(--red)">FICA (${gv(p+'-fica')}%)</span><span style="color:var(--red)">-${fmt(data.fica)}</span></div>
+      <div class="paycheck-row total"><span>Take-Home Net</span><span style="color:var(--green)">${fmt(data.net)}</span></div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════
+// INCOME RECALC
+// ═══════════════════════════════════════════════
+function recalc() {
+  const d1 = calcPerson('p1');
+  const d2 = calcPerson('p2');
+  renderPaycheckSummary('p1', d1, 'p1-paycheck-summary');
+  renderPaycheckSummary('p2', d2, 'p2-paycheck-summary');
+
+  const ppy = periodsPerYear();
+  const combinedNet = d1.net + d2.net;
+  const combinedGross = d1.gross + d2.gross;
+  const combinedRetire = d1.retireAmt + d2.retireAmt;
+
+  document.getElementById('combined-net').textContent = fmt(combinedNet);
+  document.getElementById('combined-net-monthly').textContent =
+    ppy !== 12 ? `≈ ${fmt(combinedNet * ppy / 12)} / month` : '';
+  document.getElementById('combined-annual').textContent = fmt(combinedGross * ppy);
+  document.getElementById('combined-annual-net').textContent = fmt(combinedNet * ppy);
+  document.getElementById('combined-retirement').textContent = fmt(combinedRetire);
+
+  saveLocal();
+}
+
+function updateNames() {
+  const n1 = gs('name1') || 'Partner 1';
+  const n2 = gs('name2') || 'Partner 2';
+  document.getElementById('card-name1').textContent = n1;
+  document.getElementById('card-name2').textContent = n2;
+}
+
+function getMonthlyNetIncome() {
+  const d1 = calcPerson('p1');
+  const d2 = calcPerson('p2');
+  return (d1.net + d2.net) * periodsPerYear() / 12;
+}
+
+function getMonthlyRetirement() {
+  const d1 = calcPerson('p1');
+  const d2 = calcPerson('p2');
+  return (d1.retireAmt + d2.retireAmt) * periodsPerYear() / 12;
+}
+
+// ═══════════════════════════════════════════════
+// TAB NAVIGATION
+// ═══════════════════════════════════════════════
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  const renders = { budget: renderBudget, payoff: recalcPayoff, goals: renderGoals, networth: renderNetWorth, calendar: renderCalendar, summary: renderSummary };
+  if (renders[name]) renders[name]();
+}
+
+// ═══════════════════════════════════════════════
+// DEBTS
+// ═══════════════════════════════════════════════
+function toggleMortgageFields() {
+  document.getElementById('mortgage-extra-fields').style.display =
+    document.getElementById('debt-type').value === 'mortgage' ? 'block' : 'none';
+}
+
+function addDebt() {
+  const name = document.getElementById('debt-name').value.trim();
+  if (!name) { alert('Enter a name.'); return; }
+  const type = gs('debt-type');
+  const debt = {
+    id: Date.now(),
+    name, type,
+    payment: gv('debt-payment'),
+    balance: gv('debt-balance'),
+    apr: gv('debt-apr'),
+    dueDay: parseInt(document.getElementById('debt-dueday').value) || null,
+    paidMonths: {},
+    paidOff: false,
+  };
+  if (type === 'mortgage') {
+    debt.originalAmount = gv('mort-original');
+    debt.termYears = gv('mort-term') || 30;
+    debt.startDate = gs('mort-startdate');
+    if (debt.originalAmount > 0 && debt.apr > 0 && !debt.payment) {
+      const r = debt.apr / 100 / 12;
+      const n = debt.termYears * 12;
+      debt.payment = debt.originalAmount * r * Math.pow(1+r,n) / (Math.pow(1+r,n)-1);
+    }
+  }
+  debts.push(debt);
+  ['debt-name','debt-payment','debt-balance','debt-apr','debt-dueday','mort-original','mort-term','mort-startdate'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  renderDebts();
+  saveLocal();
+}
+
+function removeDebt(id) { debts = debts.filter(d => d.id !== id); renderDebts(); saveLocal(); }
+
+// ── Paid tracking ──────────────────────────────────────
+function currentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+}
+
+function isPaidThisMonth(d) {
+  if (!d.paidMonths) d.paidMonths = {};
+  return !!d.paidMonths[currentMonthKey()];
+}
+
+function togglePaidThisMonth(id) {
+  const d = debts.find(d => d.id === id);
+  if (!d || d.paidOff) return;
+  if (!d.paidMonths) d.paidMonths = {};
+  const key = currentMonthKey();
+  if (d.paidMonths[key]) { delete d.paidMonths[key]; }
+  else { d.paidMonths[key] = true; }
+  renderDebts(); saveLocal();
+}
+
+function togglePaidOff(id) {
+  const d = debts.find(d => d.id === id);
+  if (!d) return;
+  d.paidOff = !d.paidOff;
+  // When marking paid off, also mark this month paid
+  if (d.paidOff) {
+    if (!d.paidMonths) d.paidMonths = {};
+    d.paidMonths[currentMonthKey()] = true;
+  }
+  renderDebts(); saveLocal();
+}
+
+function markAllPaidThisMonth() {
+  const key = currentMonthKey();
+  debts.forEach(d => {
+    if (!d.paidOff) {
+      if (!d.paidMonths) d.paidMonths = {};
+      d.paidMonths[key] = true;
+    }
+  });
+  renderDebts(); saveLocal();
+}
+
+function clearAllPaidThisMonth() {
+  const key = currentMonthKey();
+  debts.forEach(d => {
+    if (d.paidMonths) delete d.paidMonths[key];
+  });
+  renderDebts(); saveLocal();
+}
+
+function renderDebts() {
+  const list = document.getElementById('debts-list');
+  const totWrap = document.getElementById('debt-totals');
+  const summaryBar = document.getElementById('paid-summary-bar');
+
+  if (debts.length === 0) {
+    list.innerHTML = '<div class="empty-state">No debts added yet.</div>';
+    totWrap.style.display = 'none';
+    summaryBar.style.display = 'none';
+    return;
+  }
+  totWrap.style.display = 'block';
+  summaryBar.style.display = 'flex';
+
+  // Update summary bar
+  const key = currentMonthKey();
+  const now = new Date();
+  const monthName = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  const activeDebts = debts.filter(d => !d.paidOff);
+  const paidThisMonth = activeDebts.filter(d => isPaidThisMonth(d));
+  const unpaidThisMonth = activeDebts.filter(d => !isPaidThisMonth(d));
+  document.getElementById('paid-month-label').textContent = monthName;
+  document.getElementById('paid-count').textContent = paidThisMonth.length;
+  document.getElementById('paid-total-count').textContent = activeDebts.length;
+  document.getElementById('paid-amount').textContent = fmt(paidThisMonth.reduce((s,d) => s+d.payment, 0));
+  document.getElementById('unpaid-amount').textContent = fmt(unpaidThisMonth.reduce((s,d) => s+d.payment, 0));
+
+  list.innerHTML = debts.map(d => {
+    const paidMonth = isPaidThisMonth(d);
+    const monthlyInterest = d.balance > 0 && d.apr > 0 ? d.balance * d.apr / 100 / 12 : 0;
+    let mortgageDetail = '';
+    if (d.type === 'mortgage' && d.balance > 0 && d.apr > 0 && d.payment > 0) {
+      const r = d.apr / 100 / 12;
+      const principal = d.payment - d.balance * r;
+      const interest = d.balance * r;
+      mortgageDetail = `<div class="mortgage-detail">P: ${fmt(Math.max(0,principal))} | I: ${fmt(interest)} | Equity built/mo: ${fmt(Math.max(0,principal))}</div>`;
+    }
+
+    // Build paid-month history tooltip (last 6 months)
+    const paidHistory = [];
+    for (let i = 0; i < 6; i++) {
+      const d2 = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const k = `${d2.getFullYear()}-${String(d2.getMonth()+1).padStart(2,'0')}`;
+      const label = d2.toLocaleString('en-US', { month: 'short' });
+      paidHistory.unshift({ label, paid: !!(d.paidMonths && d.paidMonths[k]), current: i === 0 });
+    }
+    const historyDots = paidHistory.map(h =>
+      `<span title="${h.label}" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:0.65rem;font-weight:700;
+        background:${h.paid ? 'rgba(52,211,153,0.18)' : 'rgba(255,255,255,0.04)'};
+        color:${h.paid ? 'var(--green)' : 'var(--border)'};
+        border:1.5px solid ${h.current ? (h.paid ? 'var(--green)' : 'var(--red)') : 'transparent'}"
+      >${h.paid ? '✓' : '·'}</span>`
+    ).join('');
+
+    return `
+    <div class="debt-item ${d.paidOff ? 'paid-off' : paidMonth ? 'paid-this-month' : ''}">
+      <div class="debt-item-main">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap">
+          <span class="badge badge-${d.type}">${d.type}</span>
+          <span style="font-weight:600;font-size:0.9rem;${d.paidOff?'text-decoration:line-through;color:var(--muted)':''}">${d.name}</span>
+          ${d.paidOff ? '<span class="badge" style="background:rgba(167,139,250,0.15);color:var(--accent2)">PAID OFF 🎉</span>' : ''}
+          ${!d.paidOff && paidMonth ? '<span class="badge" style="background:rgba(52,211,153,0.15);color:var(--green)">PAID ✓</span>' : ''}
+          ${d.dueDay && !d.paidOff ? `<span style="font-size:0.72rem;color:var(--muted)">Due: ${d.dueDay}${ordinal(d.dueDay)}</span>` : ''}
+        </div>
+        ${mortgageDetail}
+        <div style="display:flex;align-items:center;gap:5px;margin-top:6px" title="Payment history (last 6 months)">
+          <span style="font-size:0.65rem;color:var(--muted);margin-right:2px">History:</span>
+          ${historyDots}
+        </div>
+      </div>
+      <div class="debt-item-stats">
+        <div class="debt-stat"><div class="val">${fmt(d.payment)}/mo</div><div class="lbl">Payment</div></div>
+        ${d.balance > 0 ? `<div class="debt-stat"><div class="val">${fmt(d.balance)}</div><div class="lbl">Balance</div></div>` : ''}
+        ${d.apr > 0 ? `<div class="debt-stat"><div class="val">${d.apr.toFixed(2)}%</div><div class="lbl">APR</div></div>` : ''}
+        ${monthlyInterest > 0 ? `<div class="debt-stat"><div class="val" style="color:var(--red)">${fmt(monthlyInterest)}</div><div class="lbl">Interest/mo</div></div>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${!d.paidOff ? `
+        <button class="paid-check-btn ${paidMonth ? 'checked' : ''}" onclick="togglePaidThisMonth(${d.id})" title="${paidMonth ? 'Click to unmark paid' : 'Mark as paid this month'}">
+          <span class="check-icon">${paidMonth ? '✅' : '⬜'}</span>
+          <span>${paidMonth ? 'Paid' : 'Pay'}</span>
+        </button>` : ''}
+        <button class="paid-off-btn ${d.paidOff ? 'active' : ''}" onclick="togglePaidOff(${d.id})" title="${d.paidOff ? 'Click to reactivate this debt' : 'Mark as fully paid off'}">
+          <span class="check-icon">${d.paidOff ? '🎉' : '🏁'}</span>
+          <span>${d.paidOff ? 'Reopen' : 'Paid Off'}</span>
+        </button>
+        <button class="btn btn-danger" onclick="removeDebt(${d.id})" title="Delete permanently">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const totalPay = debts.filter(d => !d.paidOff).reduce((s,d) => s+d.payment, 0);
+  const totalBal = debts.filter(d => !d.paidOff).reduce((s,d) => s+d.balance, 0);
+  const annualInterest = debts.filter(d => !d.paidOff).reduce((s,d) => s + (d.balance > 0 && d.apr > 0 ? d.balance * d.apr / 100 : 0), 0);
+  document.getElementById('total-monthly-payments').textContent = fmt(totalPay);
+  document.getElementById('total-balance').textContent = fmt(totalBal);
+  document.getElementById('total-annual-interest').textContent = fmt(annualInterest);
+}
+
+function ordinal(n) {
+  const s = ['th','st','nd','rd'];
+  const v = n%100;
+  return s[(v-20)%10]||s[v]||s[0];
+}
+
+// ═══════════════════════════════════════════════
+// BUDGET
+// ═══════════════════════════════════════════════
+function addBudgetCat() {
+  const name = document.getElementById('bcat-name').value.trim();
+  const amount = gv('bcat-amount');
+  if (!name) { alert('Enter a category name.'); return; }
+  budgetCats.push({ id: Date.now(), name, amount });
+  document.getElementById('bcat-name').value = '';
+  document.getElementById('bcat-amount').value = '';
+  renderBudget(); saveLocal();
+}
+
+function removeBudgetCat(id) { budgetCats = budgetCats.filter(c => c.id !== id); renderBudget(); saveLocal(); }
+
+function renderBudget() {
+  const monthlyNet = getMonthlyNetIncome();
+  const totalDebts = debts.reduce((s,d) => s+d.payment, 0);
+  const remaining = monthlyNet - totalDebts;
+  const ratio = monthlyNet > 0 ? (totalDebts/monthlyNet)*100 : 0;
+  const monthlyRetire = getMonthlyRetirement();
+
+  document.getElementById('bud-income').textContent = fmt(monthlyNet);
+  document.getElementById('bud-fixed').textContent = fmt(totalDebts);
+  document.getElementById('bud-remaining').textContent = fmt(remaining);
+  document.getElementById('bud-retirement').textContent = fmt(monthlyRetire);
+
+  const ratioEl = document.getElementById('bud-ratio');
+  ratioEl.textContent = ratio.toFixed(1) + '%';
+  ratioEl.className = 'value ' + (ratio > 50 ? 'red' : ratio > 35 ? 'yellow' : 'green');
+
+  document.getElementById('needs-val').textContent = fmt(monthlyNet * 0.5);
+  document.getElementById('wants-val').textContent = fmt(monthlyNet * 0.3);
+  document.getElementById('savings-val').textContent = fmt(monthlyNet * 0.2);
+
+  const alertEl = document.getElementById('budget-alert');
+  if (ratio > 50) {
+    alertEl.innerHTML = '<div class="alert alert-danger">⚠️ Debt-to-income ratio exceeds 50%. This is a financial stress zone. Focus on eliminating high-interest debt as quickly as possible.</div>';
+  } else if (ratio > 36) {
+    alertEl.innerHTML = '<div class="alert alert-warning">⚡ Debt-to-income ratio is 36–50%. You are managing but consider making extra payments to reduce this ratio. Most lenders prefer under 36%.</div>';
+  } else if (monthlyNet > 0) {
+    alertEl.innerHTML = '<div class="alert alert-success">✅ Your debt-to-income ratio is within a healthy range. Keep building your savings and emergency fund.</div>';
+  } else { alertEl.innerHTML = ''; }
+
+  // 50/30/20 comparison
+  const needsPct = monthlyNet > 0 ? (totalDebts/monthlyNet*100).toFixed(0) : 0;
+  const customTotal = budgetCats.reduce((s,c) => s+c.amount, 0);
+  document.getElementById('spending-comparison').innerHTML = `
+    <div style="margin-bottom:6px">Your fixed obligations are <strong style="color:${ratio>50?'var(--red)':ratio>30?'var(--yellow)':'var(--green)'}">${ratio.toFixed(1)}%</strong> of net income (guideline: ≤50% for Needs).</div>
+    ${customTotal > 0 ? `<div>Your custom categories total <strong>${fmt(customTotal)}/mo</strong> — that's <strong>${monthlyNet>0?(customTotal/monthlyNet*100).toFixed(1):0}%</strong> of income.</div>` : ''}
+    ${monthlyRetire > 0 ? `<div style="margin-top:5px;color:var(--accent2)">💰 You are saving ${fmt(monthlyRetire * 12)}/year toward retirement.</div>` : ''}
+  `;
+
+  // Custom budget list
+  const customList = document.getElementById('custom-budget-list');
+  const totalWrap = document.getElementById('custom-budget-total');
+  if (budgetCats.length === 0) {
+    customList.innerHTML = '<div class="empty-state" style="padding:12px">Add categories below.</div>';
+    totalWrap.style.display = 'none';
+  } else {
+    customList.innerHTML = budgetCats.map(c => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:0.85rem">
+        <span style="color:var(--muted)">${c.name}</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-weight:600">${fmt(c.amount)}/mo</span>
+          <button class="btn btn-danger" style="padding:3px 7px" onclick="removeBudgetCat(${c.id})">✕</button>
+        </div>
+      </div>`).join('');
+    document.getElementById('custom-total-val').textContent = fmt(customTotal);
+    totalWrap.style.display = 'flex';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// PAYOFF
+// ═══════════════════════════════════════════════
+function setStrategy(s) {
+  payoffStrategy = s;
+  document.getElementById('btn-snowball').classList.toggle('active', s==='snowball');
+  document.getElementById('btn-avalanche').classList.toggle('active', s==='avalanche');
+  recalcPayoff();
+}
+
+function recalcPayoff() {
+  const debtsWithBalance = debts.filter(d => d.balance > 0 && d.payment > 0);
+  const extra = gv('extra-payment');
+  const wrap = document.getElementById('payoff-content');
+  const savingsWrap = document.getElementById('interest-savings-content');
+
+  if (debtsWithBalance.length === 0) {
+    wrap.innerHTML = '<div class="empty-state">Add debts with balances and payments on the Debts tab.</div>';
+    savingsWrap.innerHTML = '<div class="empty-state">Add debts to see savings estimates.</div>';
+    return;
+  }
+
+  function simulate(debtList, extraPayment) {
+    let state = debtList.map(d => ({ ...d, remaining: d.balance, paid: false, payoffMonth: null }));
+    let month = 0, totalInterest = 0, freePool = 0;
+    const maxMonths = 720;
+    while (state.some(d => !d.paid) && month < maxMonths) {
+      month++;
+      let freed = 0;
+      state.forEach(d => {
+        if (d.paid) return;
+        const interest = d.remaining * (d.apr/100/12);
+        totalInterest += interest;
+        d.remaining = d.remaining + interest - d.payment;
+        if (d.remaining <= 0) { freed += d.payment; d.remaining = 0; d.paid = true; d.payoffMonth = month; }
+      });
+      freePool += freed;
+      const target = state.find(d => !d.paid);
+      if (target && (extraPayment + freePool) > 0) {
+        target.remaining -= (extraPayment + freePool);
+        if (target.remaining <= 0) { freePool += target.payment; target.remaining = 0; target.paid = true; target.payoffMonth = month; }
+      }
+    }
+    return { months: month, totalInterest, state };
+  }
+
+  let sorted = [...debtsWithBalance];
+  sorted.sort(payoffStrategy === 'snowball' ? (a,b) => a.balance-b.balance : (a,b) => b.apr-a.apr);
+
+  const withExtra = simulate(sorted, extra);
+  const noExtra = simulate(sorted, 0);
+
+  function moToStr(mo) {
+    if (mo >= 720) return '60+ years';
+    const y = Math.floor(mo/12), m = mo%12;
+    if (y===0) return m+'mo';
+    if (m===0) return y+'yr';
+    return y+'yr '+m+'mo';
+  }
+
+  wrap.innerHTML = `
+    <table class="payoff-table">
+      <thead><tr><th>Debt</th><th>Balance</th><th>APR</th><th>Min. Payment</th><th>Payoff</th><th>Priority</th></tr></thead>
+      <tbody>
+        ${withExtra.state.map((d,i) => `<tr>
+          <td>${d.name}</td>
+          <td>${fmt(d.balance)}</td>
+          <td>${d.apr.toFixed(2)}%</td>
+          <td>${fmt(d.payment)}/mo</td>
+          <td style="color:var(--green);font-weight:600">${moToStr(d.payoffMonth||withExtra.months)}</td>
+          <td><span style="color:var(--accent);font-weight:700">#${i+1}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <div style="margin-top:12px;font-size:0.85rem;color:var(--muted)">Total debt-free in: <strong style="color:var(--green)">${moToStr(withExtra.months)}</strong></div>
+  `;
+
+  const saved = noExtra.totalInterest - withExtra.totalInterest;
+  const timeSaved = noExtra.months - withExtra.months;
+  savingsWrap.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px">
+      <div><div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:3px">Total Interest Paid</div><div style="font-size:1.3rem;font-weight:700;color:var(--red)">${fmt(withExtra.totalInterest)}</div></div>
+      ${extra>0 ? `
+      <div><div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:3px">Interest Saved</div><div style="font-size:1.3rem;font-weight:700;color:var(--green)">${fmt(saved)}</div><div style="font-size:0.72rem;color:var(--muted)">vs. min payments only</div></div>
+      <div><div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:3px">Time Saved</div><div style="font-size:1.3rem;font-weight:700;color:var(--green)">${moToStr(timeSaved)}</div><div style="font-size:0.72rem;color:var(--muted)">faster payoff</div></div>
+      ` : '<div style="font-size:0.8rem;color:var(--muted);padding-top:12px">Add an extra payment above to see savings.</div>'}
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════
+// GOALS
+// ═══════════════════════════════════════════════
+function addGoal() {
+  const name = document.getElementById('goal-name').value.trim();
+  if (!name) { alert('Enter a goal name.'); return; }
+  goals.push({ id: Date.now(), name, target: gv('goal-target'), saved: gv('goal-saved'), contrib: gv('goal-contrib') });
+  ['goal-name','goal-target','goal-saved','goal-contrib'].forEach(id => document.getElementById(id).value='');
+  renderGoals(); saveLocal();
+}
+
+function removeGoal(id) { goals = goals.filter(g => g.id!==id); renderGoals(); saveLocal(); }
+
+function updateGoalSaved(id, val) {
+  const g = goals.find(g => g.id===id);
+  if (g) { g.saved = parseFloat(val)||0; renderGoals(); saveLocal(); }
+}
+
+function renderGoals() {
+  const monthlyNet = getMonthlyNetIncome();
+  const el = document.getElementById('goals-list');
+  document.getElementById('rec-emergency').textContent =
+    monthlyNet > 0 ? `Recommended: ${fmt(monthlyNet*3)} – ${fmt(monthlyNet*6)}` : '';
+
+  if (goals.length === 0) {
+    el.innerHTML = '<div class="empty-state">No goals added yet.</div>'; return;
+  }
+  el.innerHTML = goals.map(g => {
+    const pct = g.target > 0 ? Math.min(100, g.saved/g.target*100) : 0;
+    const remaining = Math.max(0, g.target - g.saved);
+    const monthsLeft = g.contrib > 0 ? Math.ceil(remaining/g.contrib) : null;
+    const barColor = pct >= 100 ? 'bar-green' : pct >= 50 ? 'bar-accent' : 'bar-yellow';
+    return `
+    <div class="goal-item">
+      <div class="goal-header">
+        <div>
+          <div class="goal-name">${g.name}</div>
+          <div class="goal-amounts">${fmt(g.saved)} saved of ${fmt(g.target)} goal${g.contrib>0?' · '+fmt(g.contrib)+'/mo':''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${pct>=100 ? '<span style="color:var(--green);font-weight:700;font-size:0.85rem">✅ Goal Met!</span>' : ''}
+          ${monthsLeft ? `<span style="font-size:0.8rem;color:var(--muted)">${monthsLeft} mo to go</span>` : ''}
+          <button class="btn btn-danger" onclick="removeGoal(${g.id})">✕</button>
+        </div>
+      </div>
+      <div class="progress-bar-wrap" style="height:10px"><div class="progress-bar ${barColor}" style="width:${pct}%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--muted);margin-top:4px">
+        <span>${pct.toFixed(1)}% complete</span>
+        <span>${fmt(remaining)} remaining</span>
+      </div>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:8px;font-size:0.8rem">
+        <span style="color:var(--muted)">Update saved:</span>
+        <div class="prefix-input" style="width:120px"><span>$</span><input type="number" value="${g.saved}" min="0" step="1" style="padding:5px 5px 5px 18px;font-size:0.8rem" onchange="updateGoalSaved(${g.id},this.value)" /></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// NET WORTH
+// ═══════════════════════════════════════════════
+function addAsset() {
+  const name = document.getElementById('asset-name').value.trim();
+  if (!name) { alert('Enter an asset name.'); return; }
+  assets.push({ id: Date.now(), name, value: gv('asset-value') });
+  document.getElementById('asset-name').value=''; document.getElementById('asset-value').value='';
+  renderNetWorth(); saveLocal();
+}
+
+function removeAsset(id) { assets = assets.filter(a => a.id!==id); renderNetWorth(); saveLocal(); }
+
+function addLiability() {
+  const name = document.getElementById('liab-name').value.trim();
+  if (!name) { alert('Enter a liability name.'); return; }
+  extraLiabilities.push({ id: Date.now(), name, value: gv('liab-value') });
+  document.getElementById('liab-name').value=''; document.getElementById('liab-value').value='';
+  renderNetWorth(); saveLocal();
+}
+
+function removeLiability(id) { extraLiabilities = extraLiabilities.filter(l => l.id!==id); renderNetWorth(); saveLocal(); }
+
+function renderNetWorth() {
+  const totalAssets = assets.reduce((s,a) => s+a.value, 0);
+  const debtTotal = debts.reduce((s,d) => s+d.balance, 0);
+  const extraLiabTotal = extraLiabilities.reduce((s,l) => s+l.value, 0);
+  const totalLiabilities = debtTotal + extraLiabTotal;
+  const netWorth = totalAssets - totalLiabilities;
+  const total = totalAssets + totalLiabilities;
+  const assetPct = total > 0 ? (totalAssets/total*100) : 50;
+
+  document.getElementById('nw-assets').textContent = fmt(totalAssets);
+  document.getElementById('nw-liabilities').textContent = fmt(totalLiabilities);
+  document.getElementById('nw-networth').textContent = fmt(netWorth);
+  document.getElementById('nw-networth').className = 'value ' + (netWorth>=0?'accent':'red');
+  document.getElementById('nw-ratio').textContent = totalLiabilities > 0 ? (totalAssets/totalLiabilities).toFixed(2)+'x' : '—';
+  document.getElementById('nw-bar-assets').style.width = assetPct+'%';
+  document.getElementById('nw-bar-debts').style.width = (100-assetPct)+'%';
+  document.getElementById('nw-bar-assets-label').textContent = 'Assets ' + fmt(totalAssets);
+  document.getElementById('nw-bar-debts-label').textContent = 'Liabilities ' + fmt(totalLiabilities);
+
+  const assetsList = document.getElementById('assets-list');
+  const assetsTotal = document.getElementById('assets-total');
+  if (assets.length === 0) {
+    assetsList.innerHTML = '<div class="empty-state" style="padding:12px">No assets added.</div>';
+    assetsTotal.style.display = 'none';
+  } else {
+    assetsList.innerHTML = assets.map(a => `
+      <div class="asset-item">
+        <span style="color:var(--muted)">${a.name}</span>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-weight:600;color:var(--green)">${fmt(a.value)}</span>
+          <button class="btn btn-danger" style="padding:3px 7px" onclick="removeAsset(${a.id})">✕</button>
+        </div>
+      </div>`).join('');
+    document.getElementById('assets-total-val').textContent = fmt(totalAssets);
+    assetsTotal.style.display = 'flex';
+  }
+
+  const liabEl = document.getElementById('liabilities-from-debts');
+  const debtItems = debts.filter(d => d.balance > 0);
+  let liabHtml = '';
+  if (debtItems.length > 0) {
+    liabHtml += debtItems.map(d => `
+      <div class="asset-item">
+        <span style="color:var(--muted)">${d.name} <span class="badge badge-${d.type}">${d.type}</span></span>
+        <span style="font-weight:600;color:var(--red)">${fmt(d.balance)}</span>
+      </div>`).join('');
+  }
+  if (extraLiabilities.length > 0) {
+    liabHtml += extraLiabilities.map(l => `
+      <div class="asset-item">
+        <span style="color:var(--muted)">${l.name}</span>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-weight:600;color:var(--red)">${fmt(l.value)}</span>
+          <button class="btn btn-danger" style="padding:3px 7px" onclick="removeLiability(${l.id})">✕</button>
+        </div>
+      </div>`).join('');
+  }
+  liabEl.innerHTML = liabHtml || '<div class="empty-state" style="padding:12px">No liabilities.</div>';
+}
+
+// ═══════════════════════════════════════════════
+// CALENDAR
+// ═══════════════════════════════════════════════
+function changeMonth(dir) { calMonth += dir; if (calMonth>11){calMonth=0;calYear++;} if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+
+function renderCalendar() {
+  const label = new Date(calYear, calMonth, 1).toLocaleString('en-US', {month:'long',year:'numeric'});
+  document.getElementById('cal-month-label').textContent = label;
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const today = new Date();
+
+  const payday1 = parseInt(document.getElementById('payday1')?.value) || 15;
+  const payday2 = parseInt(document.getElementById('payday2')?.value) || 30;
+  const ppy = periodsPerYear();
+  const paycheckDays = ppy <= 24 ? [payday1, payday2] : [payday1];
+
+  const debtsByDay = {};
+  debts.forEach(d => { if (d.dueDay) { if (!debtsByDay[d.dueDay]) debtsByDay[d.dueDay] = []; debtsByDay[d.dueDay].push(d); }});
+
+  let html = '';
+  for (let i=0; i<firstDay; i++) html += '<div class="cal-day" style="background:transparent;border-color:transparent"></div>';
+
+  const monthlyNet = getMonthlyNetIncome();
+  const netPerPaycheck = ppy > 0 ? monthlyNet / (ppy/12) : 0;
+
+  let monthIncome = 0, monthBills = 0;
+
+  for (let d=1; d<=daysInMonth; d++) {
+    const isToday = d===today.getDate() && calMonth===today.getMonth() && calYear===today.getFullYear();
+    const dayDebts = debtsByDay[d] || [];
+    const isPayday = paycheckDays.includes(d);
+    if (isPayday) monthIncome += netPerPaycheck;
+    dayDebts.forEach(b => monthBills += b.payment);
+
+    html += `<div class="cal-day ${isToday?'today':''} ${dayDebts.length?'has-bill':''}">
+      <div class="cal-day-num">${d}</div>
+      ${isPayday ? `<div class="cal-paycheck">💰 Paycheck</div>` : ''}
+      ${dayDebts.map(b => {
+        const paid = isPaidThisMonth(b) || b.paidOff;
+        const icon = b.paidOff ? '🎉' : paid ? '✅' : '💸';
+        const style = paid ? 'background:rgba(52,211,153,0.12);color:var(--green);text-decoration:line-through;' : '';
+        return `<div class="cal-bill" style="${style}" title="${b.name}: ${fmt(b.payment)}${paid?' — PAID':''}" onclick="togglePaidThisMonth(${b.id});renderCalendar()">${icon} ${b.name}</div>`;
+      }).join('')}
+    </div>`;
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+
+  const totalBills = debts.reduce((s,d) => s+d.payment, 0);
+  const surplus = monthlyNet - totalBills;
+  document.getElementById('cal-cashflow').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;font-size:0.85rem">
+      <div><div style="color:var(--muted);font-size:0.72rem;text-transform:uppercase;margin-bottom:3px">Est. Income This Month</div><div style="font-weight:700;color:var(--green);font-size:1.1rem">${fmt(monthlyNet)}</div></div>
+      <div><div style="color:var(--muted);font-size:0.72rem;text-transform:uppercase;margin-bottom:3px">Bills &amp; Payments</div><div style="font-weight:700;color:var(--red);font-size:1.1rem">${fmt(totalBills)}</div></div>
+      <div><div style="color:var(--muted);font-size:0.72rem;text-transform:uppercase;margin-bottom:3px">Monthly Surplus</div><div style="font-weight:700;font-size:1.1rem;color:${surplus>=0?'var(--green)':'var(--red)'}">${fmt(surplus)}</div></div>
+      <div><div style="color:var(--muted);font-size:0.72rem;text-transform:uppercase;margin-bottom:3px">Bills with due dates set</div><div style="font-weight:700;font-size:1.1rem;color:var(--accent)">${debts.filter(d=>d.dueDay).length} / ${debts.length}</div></div>
+    </div>
+    ${debts.filter(d=>!d.dueDay).length>0 ? `<div class="alert alert-info" style="margin-top:12px">💡 ${debts.filter(d=>!d.dueDay).length} bill(s) have no due date set. Edit them on the Debts tab to see them on the calendar.</div>` : ''}
+  `;
+}
+
+// ═══════════════════════════════════════════════
+// SUMMARY
+// ═══════════════════════════════════════════════
+function renderSummary() {
+  const monthlyNet = getMonthlyNetIncome();
+  const totalDebt = debts.reduce((s,d) => s+d.payment, 0);
+  const totalBal = debts.reduce((s,d) => s+d.balance, 0);
+  const surplus = monthlyNet - totalDebt;
+  const totalAssets = assets.reduce((s,a) => s+a.value, 0);
+  const totalLiab = totalBal + extraLiabilities.reduce((s,l) => s+l.value, 0);
+  const netWorth = totalAssets - totalLiab;
+
+  document.getElementById('sum-net').textContent = fmt(monthlyNet);
+  document.getElementById('sum-debt').textContent = fmt(totalDebt);
+  document.getElementById('sum-surplus').textContent = fmt(surplus);
+  document.getElementById('sum-surplus').className = 'value ' + (surplus>=0?'accent':'red');
+  document.getElementById('sum-balance').textContent = fmt(totalBal);
+  document.getElementById('sum-networth').textContent = fmt(netWorth);
+  document.getElementById('sum-networth').className = 'value ' + (netWorth>=0?'purple':'red');
+
+  const n1 = gs('name1')||'Partner 1', n2 = gs('name2')||'Partner 2';
+  const d1 = calcPerson('p1'), d2 = calcPerson('p2');
+  const ppy = periodsPerYear();
+
+  document.getElementById('sum-income-list').innerHTML = `
+    <li><span class="item-name">${n1} Gross / Period</span><span class="item-val" style="color:var(--accent)">${fmt(d1.gross)}</span></li>
+    <li><span class="item-name">${n1} Net / Period</span><span class="item-val" style="color:var(--green)">${fmt(d1.net)}</span></li>
+    <li><span class="item-name">${n2} Gross / Period</span><span class="item-val" style="color:var(--accent2)">${fmt(d2.gross)}</span></li>
+    <li><span class="item-name">${n2} Net / Period</span><span class="item-val" style="color:var(--green)">${fmt(d2.net)}</span></li>
+    <li><span class="item-name">Combined Monthly Net</span><span class="item-val" style="color:var(--green);font-size:1rem">${fmt(monthlyNet)}</span></li>
+    <li><span class="item-name">Combined Annual Gross</span><span class="item-val">${fmt((d1.gross+d2.gross)*ppy)}</span></li>
+    <li><span class="item-name">Monthly 401k Contributions</span><span class="item-val" style="color:var(--accent2)">${fmt(getMonthlyRetirement())}</span></li>
+  `;
+
+  const debtList = document.getElementById('sum-debt-list');
+  if (debts.length === 0) {
+    debtList.innerHTML = '<li><span class="item-name">No debts</span><span>—</span></li>';
+  } else {
+    debtList.innerHTML = debts.map(d => `
+      <li><span class="item-name">${d.name} <span class="badge badge-${d.type}">${d.type}</span></span><span class="item-val" style="color:var(--red)">${fmt(d.payment)}/mo</span></li>`
+    ).join('') + `<li><span style="font-weight:700">Total</span><span style="color:var(--red);font-weight:700">${fmt(totalDebt)}/mo</span></li>`;
+  }
+
+  // Health indicators
+  const ratio = monthlyNet > 0 ? (totalDebt/monthlyNet)*100 : 0;
+  document.getElementById('health-indicators').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      ${[
+        { label:'Debt-to-Income', value:ratio.toFixed(1)+'%', color:ratio<20?'green':ratio<36?'yellow':'red', note:ratio<20?'Excellent':ratio<36?'Manageable — aim for under 20%':'High — pay down debt aggressively' },
+        { label:'Monthly Surplus', value:fmt(surplus), color:surplus>0?'green':'red', note:surplus>0?'You have money left over each month':'Expenses exceed income' },
+        { label:'Emergency Fund Target', value:fmt(monthlyNet*3)+'–'+fmt(monthlyNet*6), color:'accent', note:'3–6 months of combined net income' },
+        { label:'Annual Interest Cost', value:fmt(debts.reduce((s,d)=>s+d.balance*d.apr/100,0)), color:'orange', note:'Estimated total yearly interest paid' },
+        { label:'Net Worth', value:fmt(netWorth), color:netWorth>=0?'green':'red', note:'Assets minus all liabilities' },
+        { label:'Retirement / Month', value:fmt(getMonthlyRetirement()), color:'purple', note:'Pre-tax retirement contributions' },
+      ].map(ind => `
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:13px">
+          <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);margin-bottom:3px">${ind.label}</div>
+          <div style="font-size:1.2rem;font-weight:700;color:var(--${ind.color})">${ind.value}</div>
+          <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">${ind.note}</div>
+        </div>`).join('')}
+    </div>`;
+
+  // Action items
+  const actions = [];
+  if (ratio > 50) actions.push({ icon:'🚨', text:'Your debt-to-income ratio is above 50%. Prioritize paying off high-interest debt before taking on any new expenses.', color:'red' });
+  if (surplus < 0) actions.push({ icon:'⚠️', text:'Your monthly expenses exceed your income. Review your debts and cut discretionary spending immediately.', color:'red' });
+  if (getMonthlyRetirement() === 0) actions.push({ icon:'💡', text:'You are not contributing to retirement. Even a small % goes a long way — check if your employer offers a match.', color:'yellow' });
+  if (goals.filter(g=>g.name.toLowerCase().includes('emergency')).length===0 && monthlyNet>0)
+    actions.push({ icon:'🛡️', text:`Build a 3–6 month emergency fund (${fmt(monthlyNet*3)}–${fmt(monthlyNet*6)}). Add it as a goal on the Goals tab.`, color:'accent' });
+  if (debts.some(d=>d.apr>18)) actions.push({ icon:'💳', text:'You have debt with APR over 18%. Consider a balance transfer card or personal loan to reduce the interest rate.', color:'yellow' });
+  if (surplus > 500 && debts.some(d=>d.balance>0)) actions.push({ icon:'🎯', text:`You have a monthly surplus of ${fmt(surplus)}. Apply some of it as an extra debt payment on the Payoff tab to become debt-free faster.`, color:'green' });
+  if (actions.length === 0) actions.push({ icon:'✅', text:'Great job — no urgent action items right now. Keep building savings and staying on your payoff plan.', color:'green' });
+
+  document.getElementById('action-items').innerHTML = actions.map(a => `
+    <div class="alert alert-${a.color==='red'?'danger':a.color==='yellow'?'warning':a.color==='green'?'success':'info'}" style="margin-bottom:8px">
+      <span>${a.icon}</span><span>${a.text}</span>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// PERSIST
+// ═══════════════════════════════════════════════
+function saveLocal() {
+  try {
+    const fieldsToSave = ['name1','name2','payPeriod','payday1','payday2',
+      'p1-hourly','p1-regHours','p1-otMult','p1-otHours','p1-incentiveRate','p1-incentiveHours',
+      'p1-callRate','p1-callHours','p1-callbackRate','p1-callbackHours',
+      'p1-bonus','p1-oneTimeBonus','p1-retirement','p1-health','p1-dental','p1-otherPretax','p1-tax','p1-fica',
+      'p2-hourly','p2-regHours','p2-otMult','p2-otHours','p2-incentiveRate','p2-incentiveHours',
+      'p2-callRate','p2-callHours','p2-callbackRate','p2-callbackHours',
+      'p2-bonus','p2-oneTimeBonus','p2-retirement','p2-health','p2-dental','p2-otherPretax','p2-tax','p2-fica'];
+    const fields = {};
+    fieldsToSave.forEach(id => { const el=document.getElementById(id); if(el) fields[id]=el.value; });
+    localStorage.setItem('ffp-fields', JSON.stringify(fields));
+    localStorage.setItem('ffp-debts', JSON.stringify(debts));
+    localStorage.setItem('ffp-budgetCats', JSON.stringify(budgetCats));
+    localStorage.setItem('ffp-goals', JSON.stringify(goals));
+    localStorage.setItem('ffp-assets', JSON.stringify(assets));
+    localStorage.setItem('ffp-extraLiab', JSON.stringify(extraLiabilities));
+  } catch(e) {}
+}
+
+function loadLocal() {
+  try {
+    const fields = JSON.parse(localStorage.getItem('ffp-fields')||'{}');
+    Object.entries(fields).forEach(([id,val]) => { const el=document.getElementById(id); if(el) el.value=val; });
+    debts = JSON.parse(localStorage.getItem('ffp-debts')||'[]');
+    // Migrate older saved debts that predate the paid-tracking fields
+    debts.forEach(d => {
+      if (!d.paidMonths) d.paidMonths = {};
+      if (d.paidOff === undefined) d.paidOff = false;
+    });
+    budgetCats = JSON.parse(localStorage.getItem('ffp-budgetCats')||'[]');
+    goals = JSON.parse(localStorage.getItem('ffp-goals')||'[]');
+    assets = JSON.parse(localStorage.getItem('ffp-assets')||'[]');
+    extraLiabilities = JSON.parse(localStorage.getItem('ffp-extraLiab')||'[]');
+  } catch(e) {}
+  updateNames();
+  renderDebts();
+  renderCalendar();
+}
+
+function exportData() {
+  const fieldsToSave = ['name1','name2','payPeriod','payday1','payday2',
+    'p1-hourly','p1-regHours','p1-otMult','p1-otHours','p1-incentiveRate','p1-incentiveHours',
+    'p1-callRate','p1-callHours','p1-callbackRate','p1-callbackHours',
+    'p1-bonus','p1-oneTimeBonus','p1-retirement','p1-health','p1-dental','p1-otherPretax','p1-tax','p1-fica',
+    'p2-hourly','p2-regHours','p2-otMult','p2-otHours','p2-incentiveRate','p2-incentiveHours',
+    'p2-callRate','p2-callHours','p2-callbackRate','p2-callbackHours',
+    'p2-bonus','p2-oneTimeBonus','p2-retirement','p2-health','p2-dental','p2-otherPretax','p2-tax','p2-fica'];
+  const fields = {};
+  fieldsToSave.forEach(id => { const el=document.getElementById(id); if(el) fields[id]=el.value; });
+  const data = { fields, debts, budgetCats, goals, assets, extraLiabilities };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'family-financial-plan.json';
+  a.click();
+}
+
+function importData() { document.getElementById('import-file').click(); }
+
+function loadImport(event) {
+  const file = event.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(data.fields) Object.entries(data.fields).forEach(([id,val])=>{ const el=document.getElementById(id); if(el) el.value=val; });
+      if(data.debts) debts=data.debts;
+      if(data.budgetCats) budgetCats=data.budgetCats;
+      if(data.goals) goals=data.goals;
+      if(data.assets) assets=data.assets;
+      if(data.extraLiabilities) extraLiabilities=data.extraLiabilities;
+      updateNames(); recalc(); renderDebts(); renderCalendar(); saveLocal();
+      alert('Data imported successfully!');
+    } catch(err) { alert('Import failed — invalid file.'); }
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+loadLocal();
+recalc();
+</script>
+</body>
+</html>

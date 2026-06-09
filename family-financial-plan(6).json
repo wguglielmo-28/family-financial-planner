@@ -1,0 +1,523 @@
+{
+  "fields": {
+    "name1": "William",
+    "name2": "Summer",
+    "payPeriod": "26",
+    "payday1": "10",
+    "payday2": "24",
+    "p1-hourly": "032",
+    "p1-regHours": "72",
+    "p1-otMult": "1.5",
+    "p1-otHours": "",
+    "p1-incentiveRate": "10",
+    "p1-incentiveHours": "",
+    "p1-callRate": "5.5",
+    "p1-callHours": "24",
+    "p1-callbackRate": "37",
+    "p1-callbackHours": "",
+    "p1-bonus": "",
+    "p1-oneTimeBonus": "",
+    "p1-retirement": "6",
+    "p1-health": "248.03",
+    "p1-dental": "48.34",
+    "p1-otherPretax": "0.01",
+    "p1-tax": "22",
+    "p1-fica": "7.65",
+    "p2-hourly": "33",
+    "p2-regHours": "72",
+    "p2-otMult": "1.5",
+    "p2-otHours": "",
+    "p2-incentiveRate": "10",
+    "p2-incentiveHours": "",
+    "p2-callRate": "5.5",
+    "p2-callHours": "24",
+    "p2-callbackRate": "55",
+    "p2-callbackHours": "5.5",
+    "p2-bonus": "",
+    "p2-oneTimeBonus": "",
+    "p2-retirement": "",
+    "p2-health": "",
+    "p2-dental": "",
+    "p2-otherPretax": "29",
+    "p2-tax": "22",
+    "p2-fica": "7.65"
+  },
+  "debts": [
+    {
+      "id": 1780948325513,
+      "name": "House",
+      "type": "mortgage",
+      "payment": 2550,
+      "balance": 269016.89,
+      "apr": 7.25,
+      "dueDay": null,
+      "originalAmount": 0,
+      "termYears": 30,
+      "startDate": "",
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780948440651,
+      "name": "William Capital One (1)",
+      "type": "card",
+      "payment": 89,
+      "balance": 2697.37,
+      "apr": 26.4,
+      "dueDay": 4,
+      "paidMonths": {
+        "2026-06": true
+      },
+      "paidOff": false
+    },
+    {
+      "id": 1780948498267,
+      "name": "William Capital One (2)",
+      "type": "card",
+      "payment": 176,
+      "balance": 5227.91,
+      "apr": 27.24,
+      "dueDay": 8,
+      "paidMonths": {
+        "2026-06": true
+      },
+      "paidOff": false
+    },
+    {
+      "id": 1780948531906,
+      "name": "William Capital One (3)",
+      "type": "card",
+      "payment": 159,
+      "balance": 4669.52,
+      "apr": 30.49,
+      "dueDay": 10,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780948625286,
+      "name": "William Discover",
+      "type": "card",
+      "payment": 43,
+      "balance": 1422.99,
+      "apr": 19.49,
+      "dueDay": 24,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780948783518,
+      "name": "William Brightway",
+      "type": "card",
+      "payment": 113.79,
+      "balance": 2769.38,
+      "apr": 35.99,
+      "dueDay": 4,
+      "paidMonths": {
+        "2026-06": true
+      },
+      "paidOff": false
+    },
+    {
+      "id": 1780948854378,
+      "name": "William Citi",
+      "type": "card",
+      "payment": 137.31,
+      "balance": 4281.25,
+      "apr": 28.74,
+      "dueDay": 6,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780949662460,
+      "name": "Sam's Club",
+      "type": "card",
+      "payment": 50,
+      "balance": 1471.64,
+      "apr": 27.4,
+      "dueDay": 3,
+      "paidMonths": {
+        "2026-06": true
+      },
+      "paidOff": false
+    },
+    {
+      "id": 1780949728069,
+      "name": "Lowes",
+      "type": "card",
+      "payment": 96,
+      "balance": 2781.36,
+      "apr": 31.99,
+      "dueDay": 6,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780949765648,
+      "name": "Carecredit",
+      "type": "card",
+      "payment": 30,
+      "balance": 234.93,
+      "apr": 32.99,
+      "dueDay": 15,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780949818697,
+      "name": "Discount Tire",
+      "type": "card",
+      "payment": 55,
+      "balance": 1091.28,
+      "apr": 34.99,
+      "dueDay": 16,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780950064612,
+      "name": "Summer Capital One (1)",
+      "type": "card",
+      "payment": 25,
+      "balance": 238.91,
+      "apr": 28.4,
+      "dueDay": 12,
+      "paidMonths": {
+        "2026-06": true
+      },
+      "paidOff": false
+    },
+    {
+      "id": 1780950105276,
+      "name": "Summer Capital One Kohls",
+      "type": "card",
+      "payment": 106,
+      "balance": 3016.11,
+      "apr": 29.49,
+      "dueDay": 22,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780950157874,
+      "name": "Summer Capital One (2)",
+      "type": "card",
+      "payment": 25,
+      "balance": 843.23,
+      "apr": 28.21,
+      "dueDay": 20,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780950201690,
+      "name": "Summer Capital One (3)",
+      "type": "card",
+      "payment": 86,
+      "balance": 2805.93,
+      "apr": 28.24,
+      "dueDay": 13,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780950258087,
+      "name": "Summer Capital One (4)",
+      "type": "card",
+      "payment": 47,
+      "balance": 1985.07,
+      "apr": 28.74,
+      "dueDay": 10,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780950325828,
+      "name": "Spire Gas",
+      "type": "bill",
+      "payment": 220,
+      "balance": 0,
+      "apr": 0,
+      "dueDay": 8,
+      "paidMonths": {
+        "2026-06": true
+      },
+      "paidOff": false
+    },
+    {
+      "id": 1780950351775,
+      "name": "Liberty Electric",
+      "type": "bill",
+      "payment": 606,
+      "balance": 0,
+      "apr": 0,
+      "dueDay": null,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780950372462,
+      "name": "Water",
+      "type": "bill",
+      "payment": 100,
+      "balance": 0,
+      "apr": 0,
+      "dueDay": 20,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780950385694,
+      "name": "Internet",
+      "type": "bill",
+      "payment": 125,
+      "balance": 0,
+      "apr": 0,
+      "dueDay": 3,
+      "paidMonths": {
+        "2026-06": true
+      },
+      "paidOff": false
+    },
+    {
+      "id": 1780950416533,
+      "name": "AT&T",
+      "type": "bill",
+      "payment": 254,
+      "balance": 0,
+      "apr": 0,
+      "dueDay": 15,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780950431962,
+      "name": "USAA insurance",
+      "type": "bill",
+      "payment": 335,
+      "balance": 0,
+      "apr": 0,
+      "dueDay": null,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780950461815,
+      "name": "Ariahs Instrument",
+      "type": "subscription",
+      "payment": 6,
+      "balance": 0,
+      "apr": 0,
+      "dueDay": 30,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780950482508,
+      "name": "Bristol's Instrument",
+      "type": "bill",
+      "payment": 55,
+      "balance": 0,
+      "apr": 0,
+      "dueDay": 8,
+      "paidMonths": {
+        "2026-06": true
+      },
+      "paidOff": false
+    },
+    {
+      "id": 1780950712934,
+      "name": "Venmo",
+      "type": "card",
+      "payment": 45,
+      "balance": 986.9,
+      "apr": 30.74,
+      "dueDay": 7,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780950858059,
+      "name": "Summer USAA",
+      "type": "card",
+      "payment": 25,
+      "balance": 835.19,
+      "apr": 27.4,
+      "dueDay": 20,
+      "paidMonths": {
+        "2026-06": true
+      },
+      "paidOff": false
+    },
+    {
+      "id": 1780950908010,
+      "name": "Apple",
+      "type": "card",
+      "payment": 115,
+      "balance": 3188.75,
+      "apr": 25.49,
+      "dueDay": 30,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780951019869,
+      "name": "Sunbit",
+      "type": "card",
+      "payment": 115,
+      "balance": 3299.24,
+      "apr": 29.99,
+      "dueDay": 18,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780951199539,
+      "name": "Old Navy",
+      "type": "card",
+      "payment": 80.25,
+      "balance": 2466.78,
+      "apr": 29.49,
+      "dueDay": 6,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780951336752,
+      "name": "Indigo (1)",
+      "type": "card",
+      "payment": 40,
+      "balance": 755.39,
+      "apr": 35.9,
+      "dueDay": 23,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780951387575,
+      "name": "Indigo (2)",
+      "type": "card",
+      "payment": 40,
+      "balance": 533.66,
+      "apr": 35.9,
+      "dueDay": 9,
+      "paidMonths": {
+        "2026-06": true
+      },
+      "paidOff": false
+    },
+    {
+      "id": 1780951436948,
+      "name": "Indigo (3)",
+      "type": "card",
+      "payment": 91,
+      "balance": 1494.22,
+      "apr": 29.9,
+      "dueDay": 14,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780951576373,
+      "name": "Merrick Bank",
+      "type": "card",
+      "payment": 62,
+      "balance": 1909.42,
+      "apr": 28.45,
+      "dueDay": 9,
+      "paidMonths": {
+        "2026-06": true
+      },
+      "paidOff": false
+    },
+    {
+      "id": 1780951658865,
+      "name": "Credit One",
+      "type": "card",
+      "payment": 30,
+      "balance": 488.28,
+      "apr": 27.99,
+      "dueDay": 13,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780951821318,
+      "name": "Summers Brightway",
+      "type": "card",
+      "payment": 85,
+      "balance": 2148.79,
+      "apr": 35.74,
+      "dueDay": 16,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780951871994,
+      "name": "Paypal",
+      "type": "card",
+      "payment": 29,
+      "balance": 813.98,
+      "apr": 33.24,
+      "dueDay": 17,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780951970392,
+      "name": "Seen",
+      "type": "card",
+      "payment": 26,
+      "balance": 448.97,
+      "apr": 35.99,
+      "dueDay": 15,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780952143943,
+      "name": "Avant",
+      "type": "card",
+      "payment": 45,
+      "balance": 1403.05,
+      "apr": 35.99,
+      "dueDay": 13,
+      "paidMonths": {},
+      "paidOff": false
+    },
+    {
+      "id": 1780952774285,
+      "name": "Williams USAA",
+      "type": "card",
+      "payment": 15,
+      "balance": 0,
+      "apr": 23.4,
+      "dueDay": 4,
+      "paidMonths": {
+        "2026-06": true
+      },
+      "paidOff": false
+    }
+  ],
+  "budgetCats": [],
+  "goals": [],
+  "assets": [
+    {
+      "id": 1780948892257,
+      "name": "House",
+      "value": 277874
+    },
+    {
+      "id": 1780948978638,
+      "name": "Camry",
+      "value": 12000
+    },
+    {
+      "id": 1780949084828,
+      "name": "Highlander",
+      "value": 15000
+    }
+  ],
+  "extraLiabilities": []
+}
