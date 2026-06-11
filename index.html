@@ -1138,6 +1138,9 @@ function renderDebts() {
   totWrap.style.display = 'block';
   summaryBar.style.display = 'flex';
 
+  // Sort by due date ascending; no due date goes to the end
+  debts.sort((a, b) => (a.dueDay ?? 32) - (b.dueDay ?? 32));
+
   // Update summary bar
   const key = currentMonthKey();
   const now = new Date();
