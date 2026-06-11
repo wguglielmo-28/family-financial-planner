@@ -200,6 +200,30 @@
     .net-worth-bar { height: 16px; border-radius: 999px; background: var(--bg); overflow: hidden; display: flex; margin: 10px 0; }
     .nw-assets { background: var(--green); transition: width 0.4s; }
     .nw-debts { background: var(--red); transition: width 0.4s; }
+
+    /* ── Paycheck log table ── */
+    .pc-table-wrap { overflow-x: auto; margin: 8px 0 4px; border-radius: 8px; border: 1px solid var(--border); }
+    .pc-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
+    .pc-table th { padding: 6px 5px; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; text-align: center; background: var(--bg); }
+    .pc-table th:first-child { text-align: left; padding-left: 8px; }
+    .pc-table td { padding: 3px 3px; border-bottom: 1px solid rgba(46,51,71,0.6); vertical-align: middle; }
+    .pc-table tr:last-child td { border-bottom: none; }
+    .pc-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+    .pc-table input[type="number"], .pc-table input[type="text"] { background: transparent; border: 1px solid transparent; border-radius: 5px; color: var(--text); padding: 4px 5px; font-size: 0.76rem; width: 100%; min-width: 48px; transition: border-color 0.15s; }
+    .pc-table input:hover { border-color: var(--border); }
+    .pc-table input:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+    .pc-table .td-label input { min-width: 88px; }
+    .pc-table .td-money { color: var(--yellow); font-weight: 600; text-align: right; white-space: nowrap; padding: 4px 7px; }
+    .pc-table .td-net { color: var(--green); font-weight: 700; text-align: right; white-space: nowrap; padding: 4px 7px; }
+    .pc-table .td-del { padding: 2px 5px; }
+    .pc-table tfoot td { font-weight: 700; padding: 7px 5px; border-top: 2px solid var(--border); background: var(--bg); }
+    .pc-table tfoot .td-money { font-size: 0.82rem; color: var(--yellow); }
+    .pc-table tfoot .td-net { font-size: 0.82rem; color: var(--green); }
+    .pc-empty { font-size: 0.78rem; color: var(--muted); padding: 12px; text-align: center; }
+
+    /* ── Share link toast ── */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--green); color: var(--green); padding: 10px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; z-index: 9999; animation: fadeInUp 0.2s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+    @keyframes fadeInUp { from { opacity:0; transform: translateX(-50%) translateY(10px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
   </style>
 </head>
 <body>
@@ -210,7 +234,8 @@
     <h1>Family Financial Planner</h1>
     <div class="sub">Income · Debts · Budget · Payoff · Goals · Net Worth</div>
   </div>
-  <div style="margin-left:auto;display:flex;gap:8px;">
+  <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="btn btn-primary btn-sm" onclick="copyShareLink()" title="Encode all data into the URL so anyone with the link sees your data">🔗 Copy Share Link</button>
     <button class="btn btn-ghost btn-sm" onclick="exportData()">💾 Export</button>
     <button class="btn btn-ghost btn-sm" onclick="importData()">📂 Import</button>
     <input type="file" id="import-file" accept=".json" style="display:none" onchange="loadImport(event)" />
@@ -242,20 +267,20 @@
       <input type="text" id="name2" value="Partner 2" oninput="updateNames();recalc()" />
     </div>
     <div class="field">
-      <label>Pay Period</label>
+      <label>Paychecks / Year (for annual est.)</label>
       <select id="payPeriod" onchange="recalc()">
-        <option value="52">Weekly</option>
-        <option value="26">Bi-Weekly</option>
-        <option value="24">Semi-Monthly</option>
-        <option value="12" selected>Monthly</option>
+        <option value="52">Weekly (52×)</option>
+        <option value="26">Bi-Weekly (26×)</option>
+        <option value="24">Semi-Monthly (24×)</option>
+        <option value="12" selected>Monthly (12×)</option>
       </select>
     </div>
     <div class="field">
-      <label>Payday (day of month)</label>
+      <label>Payday 1 (day of month)</label>
       <input type="number" id="payday1" value="15" min="1" max="31" oninput="renderCalendar()" placeholder="15" />
     </div>
     <div class="field">
-      <label>2nd Payday (if bi-weekly)</label>
+      <label>Payday 2 (optional)</label>
       <input type="number" id="payday2" value="30" min="1" max="31" oninput="renderCalendar()" placeholder="30" />
     </div>
   </div>
@@ -265,139 +290,105 @@
     <div class="person-card person1">
       <h3 id="card-name1">Partner 1</h3>
 
-      <div class="section-label" style="border-top:none;margin-top:0;padding-top:0">Regular Pay</div>
-      <div class="field-group">
-        <div class="field"><label>Hourly Rate</label><div class="prefix-input"><span>$</span><input type="number" id="p1-hourly" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-        <div class="field"><label>Regular Hours / Period</label><input type="number" id="p1-regHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
-      </div>
-
-      <div class="section-label">Overtime</div>
+      <div class="section-label" style="border-top:none;margin-top:0;padding-top:0">Pay Rates</div>
       <div class="field-group-3">
+        <div class="field"><label>Hourly Rate</label><div class="prefix-input"><span>$</span><input type="number" id="p1-hourly" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
         <div class="field"><label>OT Multiplier</label><div class="suffix-input"><input type="number" id="p1-otMult" value="1.5" min="1" step="0.25" oninput="recalc()" /><span>×</span></div></div>
-        <div class="field"><label>OT Hours / Period</label><input type="number" id="p1-otHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
-        <div class="field"><label>OT Rate (auto)</label><input type="number" id="p1-otRate" placeholder="0.00" min="0" step="0.01" readonly style="background:var(--surface3);color:var(--muted)" /></div>
+        <div class="field"><label>OT Rate (auto)</label><input type="number" id="p1-otRate" placeholder="0.00" readonly style="background:var(--surface3);color:var(--muted)" /></div>
       </div>
-
-      <div class="section-label">Incentive Pay</div>
-      <div class="field-group">
+      <div class="field-group-3">
         <div class="field"><label>Incentive Rate / hr</label><div class="prefix-input"><span>$</span><input type="number" id="p1-incentiveRate" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-        <div class="field"><label>Incentive Hours</label><input type="number" id="p1-incentiveHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
-      </div>
-
-      <div class="section-label">On-Call &amp; Callback Pay</div>
-      <div class="field-group">
         <div class="field"><label>Call Rate / hr</label><div class="prefix-input"><span>$</span><input type="number" id="p1-callRate" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-        <div class="field"><label>Call Hours</label><input type="number" id="p1-callHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
-      </div>
-      <div class="field-group">
         <div class="field"><label>Callback Rate / hr</label><div class="prefix-input"><span>$</span><input type="number" id="p1-callbackRate" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-        <div class="field"><label>Callback Hours</label><input type="number" id="p1-callbackHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
       </div>
 
-      <div class="section-label">Bonuses</div>
+      <div class="section-label">Recurring (every paycheck)</div>
       <div class="field-group">
         <div class="field"><label>Recurring Bonus / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p1-bonus" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-        <div class="field"><label>One-Time Bonus (this period)</label><div class="prefix-input"><span>$</span><input type="number" id="p1-oneTimeBonus" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-      </div>
-
-      <div class="section-label">Pre-Tax Deductions</div>
-      <div class="field-group">
         <div class="field"><label>401k / Retirement %</label><div class="suffix-input"><input type="number" id="p1-retirement" placeholder="0" min="0" max="100" step="0.5" oninput="recalc()" /><span>%</span></div></div>
+      </div>
+      <div class="field-group">
         <div class="field"><label>Health Insurance / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p1-health" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-      </div>
-      <div class="field-group">
         <div class="field"><label>Dental / Vision / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p1-dental" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-        <div class="field"><label>Other Pre-Tax / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p1-otherPretax" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
       </div>
-
-      <div class="section-label">Tax</div>
       <div class="field-group">
-        <div class="field"><label>Fed + State Tax Rate %</label><div class="suffix-input"><input type="number" id="p1-tax" value="22" min="0" max="60" step="0.5" oninput="recalc()" /><span>%</span></div></div>
-        <div class="field"><label>FICA (Social Sec + Medicare)</label><div class="suffix-input"><input type="number" id="p1-fica" value="7.65" min="0" max="20" step="0.01" oninput="recalc()" /><span>%</span></div></div>
+        <div class="field"><label>Other Pre-Tax / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p1-otherPretax" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+        <div class="field"><label>Fed + State Tax Rate</label><div class="suffix-input"><input type="number" id="p1-tax" value="22" min="0" max="60" step="0.5" oninput="recalc()" /><span>%</span></div></div>
+      </div>
+      <div class="field-group">
+        <div class="field"><label>FICA (SS + Medicare)</label><div class="suffix-input"><input type="number" id="p1-fica" value="7.65" min="0" max="20" step="0.01" oninput="recalc()" /><span>%</span></div></div>
+        <div class="field"></div>
       </div>
 
-      <hr class="divider" />
-      <div id="p1-paycheck-summary"></div>
+      <div class="section-label" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Paycheck Log <span style="font-weight:400;text-transform:none;letter-spacing:0">(add one row per paycheck this month)</span></span>
+        <button class="btn btn-primary btn-sm" onclick="addPaycheck('p1')" style="margin-left:8px;padding:4px 10px;font-size:0.75rem">+ Add Paycheck</button>
+      </div>
+      <div id="p1-paychecks"><div class="pc-empty">No paychecks yet — click "+ Add Paycheck" above.</div></div>
+      <div id="p1-paycheck-summary" style="margin-top:10px"></div>
     </div>
 
     <!-- PARTNER 2 -->
     <div class="person-card person2">
       <h3 id="card-name2">Partner 2</h3>
 
-      <div class="section-label" style="border-top:none;margin-top:0;padding-top:0">Regular Pay</div>
-      <div class="field-group">
-        <div class="field"><label>Hourly Rate</label><div class="prefix-input"><span>$</span><input type="number" id="p2-hourly" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-        <div class="field"><label>Regular Hours / Period</label><input type="number" id="p2-regHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
-      </div>
-
-      <div class="section-label">Overtime</div>
+      <div class="section-label" style="border-top:none;margin-top:0;padding-top:0">Pay Rates</div>
       <div class="field-group-3">
+        <div class="field"><label>Hourly Rate</label><div class="prefix-input"><span>$</span><input type="number" id="p2-hourly" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
         <div class="field"><label>OT Multiplier</label><div class="suffix-input"><input type="number" id="p2-otMult" value="1.5" min="1" step="0.25" oninput="recalc()" /><span>×</span></div></div>
-        <div class="field"><label>OT Hours / Period</label><input type="number" id="p2-otHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
-        <div class="field"><label>OT Rate (auto)</label><input type="number" id="p2-otRate" placeholder="0.00" min="0" step="0.01" readonly style="background:var(--surface3);color:var(--muted)" /></div>
+        <div class="field"><label>OT Rate (auto)</label><input type="number" id="p2-otRate" placeholder="0.00" readonly style="background:var(--surface3);color:var(--muted)" /></div>
       </div>
-
-      <div class="section-label">Incentive Pay</div>
-      <div class="field-group">
+      <div class="field-group-3">
         <div class="field"><label>Incentive Rate / hr</label><div class="prefix-input"><span>$</span><input type="number" id="p2-incentiveRate" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-        <div class="field"><label>Incentive Hours</label><input type="number" id="p2-incentiveHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
-      </div>
-
-      <div class="section-label">On-Call &amp; Callback Pay</div>
-      <div class="field-group">
         <div class="field"><label>Call Rate / hr</label><div class="prefix-input"><span>$</span><input type="number" id="p2-callRate" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-        <div class="field"><label>Call Hours</label><input type="number" id="p2-callHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
-      </div>
-      <div class="field-group">
         <div class="field"><label>Callback Rate / hr</label><div class="prefix-input"><span>$</span><input type="number" id="p2-callbackRate" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-        <div class="field"><label>Callback Hours</label><input type="number" id="p2-callbackHours" placeholder="0" min="0" step="0.5" oninput="recalc()" /></div>
       </div>
 
-      <div class="section-label">Bonuses</div>
+      <div class="section-label">Recurring (every paycheck)</div>
       <div class="field-group">
         <div class="field"><label>Recurring Bonus / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p2-bonus" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-        <div class="field"><label>One-Time Bonus (this period)</label><div class="prefix-input"><span>$</span><input type="number" id="p2-oneTimeBonus" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-      </div>
-
-      <div class="section-label">Pre-Tax Deductions</div>
-      <div class="field-group">
         <div class="field"><label>401k / Retirement %</label><div class="suffix-input"><input type="number" id="p2-retirement" placeholder="0" min="0" max="100" step="0.5" oninput="recalc()" /><span>%</span></div></div>
+      </div>
+      <div class="field-group">
         <div class="field"><label>Health Insurance / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p2-health" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-      </div>
-      <div class="field-group">
         <div class="field"><label>Dental / Vision / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p2-dental" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
-        <div class="field"><label>Other Pre-Tax / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p2-otherPretax" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
       </div>
-
-      <div class="section-label">Tax</div>
       <div class="field-group">
-        <div class="field"><label>Fed + State Tax Rate %</label><div class="suffix-input"><input type="number" id="p2-tax" value="22" min="0" max="60" step="0.5" oninput="recalc()" /><span>%</span></div></div>
-        <div class="field"><label>FICA (Social Sec + Medicare)</label><div class="suffix-input"><input type="number" id="p2-fica" value="7.65" min="0" max="20" step="0.01" oninput="recalc()" /><span>%</span></div></div>
+        <div class="field"><label>Other Pre-Tax / Period</label><div class="prefix-input"><span>$</span><input type="number" id="p2-otherPretax" placeholder="0.00" min="0" step="0.01" oninput="recalc()" /></div></div>
+        <div class="field"><label>Fed + State Tax Rate</label><div class="suffix-input"><input type="number" id="p2-tax" value="22" min="0" max="60" step="0.5" oninput="recalc()" /><span>%</span></div></div>
+      </div>
+      <div class="field-group">
+        <div class="field"><label>FICA (SS + Medicare)</label><div class="suffix-input"><input type="number" id="p2-fica" value="7.65" min="0" max="20" step="0.01" oninput="recalc()" /><span>%</span></div></div>
+        <div class="field"></div>
       </div>
 
-      <hr class="divider" />
-      <div id="p2-paycheck-summary"></div>
+      <div class="section-label" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Paycheck Log <span style="font-weight:400;text-transform:none;letter-spacing:0">(add one row per paycheck this month)</span></span>
+        <button class="btn btn-primary btn-sm" onclick="addPaycheck('p2')" style="margin-left:8px;padding:4px 10px;font-size:0.75rem">+ Add Paycheck</button>
+      </div>
+      <div id="p2-paychecks"><div class="pc-empty">No paychecks yet — click "+ Add Paycheck" above.</div></div>
+      <div id="p2-paycheck-summary" style="margin-top:10px"></div>
     </div>
   </div>
 
   <div class="card" style="margin-top:4px">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
       <div>
-        <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">COMBINED NET / PERIOD</div>
+        <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">COMBINED MONTHLY NET</div>
         <div id="combined-net" style="font-size:2rem;font-weight:800;color:var(--green)">$0.00</div>
         <div id="combined-net-monthly" style="font-size:0.8rem;color:var(--muted);margin-top:2px"></div>
       </div>
       <div style="display:flex;gap:24px;flex-wrap:wrap">
         <div style="text-align:right">
-          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:3px">Annual Gross</div>
+          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:3px">Est. Annual Gross</div>
           <div id="combined-annual" style="font-size:1.2rem;font-weight:700"></div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:3px">Annual Net</div>
+          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:3px">Est. Annual Net</div>
           <div id="combined-annual-net" style="font-size:1.2rem;font-weight:700;color:var(--green)"></div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:3px">Total 401k / Period</div>
+          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:3px">Total 401k / Month</div>
           <div id="combined-retirement" style="font-size:1.2rem;font-weight:700;color:var(--accent2)"></div>
         </div>
       </div>
@@ -711,9 +702,11 @@ let budgetCats = [];
 let goals = [];
 let assets = [];
 let extraLiabilities = [];
+let paychecks = { p1: [], p2: [] };
 let payoffStrategy = 'snowball';
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
+let urlUpdateTimer = null;
 
 // ═══════════════════════════════════════════════
 // HELPERS
@@ -723,90 +716,206 @@ function gs(id) { return document.getElementById(id)?.value || ''; }
 function fmt(v) { return '$' + Math.abs(v).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 function periodsPerYear() { return parseInt(gs('payPeriod')) || 12; }
 
+// ── Calculate a single paycheck entry gross/net ──────────
+function calcPaycheckEntry(p, pc) {
+  const hourly = gv(p+'-hourly');
+  const otMult = gv(p+'-otMult') || 1.5;
+  const otRate = hourly * otMult;
+  const iRate = gv(p+'-incentiveRate');
+  const cRate = gv(p+'-callRate');
+  const cbRate = gv(p+'-callbackRate');
+  const gross = hourly*(pc.regHours||0) + otRate*(pc.otHours||0) +
+                iRate*(pc.incentiveHours||0) + cRate*(pc.callHours||0) +
+                cbRate*(pc.callbackHours||0) + (pc.bonus||0) + (pc.oneTimeBonus||0);
+  const retirePct = gv(p+'-retirement') / 100;
+  const retireAmt = gross * retirePct;
+  const pretax = retireAmt + gv(p+'-health') + gv(p+'-dental') + gv(p+'-otherPretax');
+  const taxable = Math.max(0, gross - pretax);
+  const fedTax = taxable * gv(p+'-tax') / 100;
+  const fica = gross * gv(p+'-fica') / 100;
+  const net = gross - pretax - fedTax - fica;
+  return { gross, net, retireAmt };
+}
+
+// ── Sum all paychecks for a person ───────────────────────
 function calcPerson(p) {
   const hourly = gv(p+'-hourly');
-  const regHours = gv(p+'-regHours');
   const otMult = gv(p+'-otMult') || 1.5;
-  const otHours = gv(p+'-otHours');
   const otRate = hourly * otMult;
-
-  // Update auto OT rate display
   const otRateEl = document.getElementById(p+'-otRate');
   if (otRateEl) otRateEl.value = otRate > 0 ? otRate.toFixed(2) : '';
 
-  const reg = hourly * regHours;
-  const ot = otRate * otHours;
-  const incentive = gv(p+'-incentiveRate') * gv(p+'-incentiveHours');
-  const call = gv(p+'-callRate') * gv(p+'-callHours');
-  const callback = gv(p+'-callbackRate') * gv(p+'-callbackHours');
-  const bonus = gv(p+'-bonus');
-  const oneTime = gv(p+'-oneTimeBonus');
-  const gross = reg + ot + incentive + call + callback + bonus + oneTime;
+  const pList = paychecks[p] || [];
+  let gross = 0, retireAmt = 0, net = 0;
+  let totalReg=0, totalOT=0, totalInc=0, totalCall=0, totalCB=0, totalBonus=0, totalOneTime=0;
 
-  const retirePct = gv(p+'-retirement') / 100;
-  const retireAmt = gross * retirePct;
-  const health = gv(p+'-health');
-  const dental = gv(p+'-dental');
-  const otherPretax = gv(p+'-otherPretax');
-  const totalPretax = retireAmt + health + dental + otherPretax;
+  pList.forEach(pc => {
+    const iRate = gv(p+'-incentiveRate'), cRate = gv(p+'-callRate'), cbRate = gv(p+'-callbackRate');
+    totalReg      += hourly*(pc.regHours||0);
+    totalOT       += otRate*(pc.otHours||0);
+    totalInc      += iRate*(pc.incentiveHours||0);
+    totalCall     += cRate*(pc.callHours||0);
+    totalCB       += cbRate*(pc.callbackHours||0);
+    totalBonus    += (pc.bonus||0);
+    totalOneTime  += (pc.oneTimeBonus||0);
+    const e = calcPaycheckEntry(p, pc);
+    gross += e.gross; retireAmt += e.retireAmt; net += e.net;
+  });
+
+  // Add per-period recurring bonus (not per-paycheck)
+  const recurringBonus = gv(p+'-bonus');
+  const rBonusPretax = recurringBonus * gv(p+'-retirement') / 100;
+  const rBonusTaxable = Math.max(0, recurringBonus - rBonusPretax);
+  const rBonusNet = recurringBonus - rBonusPretax - rBonusTaxable*gv(p+'-tax')/100 - recurringBonus*gv(p+'-fica')/100;
+  gross += recurringBonus; net += rBonusNet; retireAmt += rBonusPretax;
+
+  const health = gv(p+'-health'), dental = gv(p+'-dental'), otherPretax = gv(p+'-otherPretax');
+  const totalPretax = retireAmt + health*pList.length + dental*pList.length + otherPretax*pList.length;
   const taxableGross = Math.max(0, gross - totalPretax);
-
-  const taxRate = gv(p+'-tax') / 100;
-  const ficaRate = gv(p+'-fica') / 100;
-  const fedTax = taxableGross * taxRate;
-  const fica = gross * ficaRate;
+  const fedTax = taxableGross * gv(p+'-tax') / 100;
+  const fica = gross * gv(p+'-fica') / 100;
   const totalTax = fedTax + fica;
 
-  const net = gross - totalPretax - totalTax;
-
-  return { reg, ot, incentive, call, callback, bonus, oneTime, gross, retireAmt, health, dental, otherPretax, totalPretax, taxableGross, fedTax, fica, totalTax, net, otRate, hourly, otMult };
+  return { reg:totalReg, ot:totalOT, incentive:totalInc, call:totalCall, callback:totalCB,
+           bonus:recurringBonus, oneTime:totalOneTime, gross, retireAmt, health, dental,
+           otherPretax, totalPretax, taxableGross, fedTax, fica, totalTax, net,
+           otRate, hourly, otMult, paycheckCount: pList.length };
 }
 
-function renderPaycheckSummary(p, data, elId) {
-  const el = document.getElementById(elId);
-  if (!el) return;
-  el.innerHTML = `
-    <div class="paycheck-section">
-      <div class="paycheck-row"><span style="color:var(--muted)">Regular Pay</span><span>${fmt(data.reg)}</span></div>
-      ${data.ot > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">Overtime (${gv(p+'-otHours')}h @ ${fmt(data.otRate)}/hr)</span><span style="color:var(--yellow)">${fmt(data.ot)}</span></div>` : ''}
-      ${data.incentive > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">Incentive Pay</span><span>${fmt(data.incentive)}</span></div>` : ''}
-      ${data.call > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">On-Call Pay</span><span>${fmt(data.call)}</span></div>` : ''}
-      ${data.callback > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">Callback Pay</span><span>${fmt(data.callback)}</span></div>` : ''}
-      ${data.bonus > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">Recurring Bonus</span><span>${fmt(data.bonus)}</span></div>` : ''}
-      ${data.oneTime > 0 ? `<div class="paycheck-row"><span style="color:var(--yellow)">⚡ One-Time Bonus</span><span style="color:var(--yellow)">${fmt(data.oneTime)}</span></div>` : ''}
-      <div class="paycheck-row subtotal"><span>Gross Pay</span><span>${fmt(data.gross)}</span></div>
-      ${data.retireAmt > 0 ? `<div class="paycheck-row"><span style="color:var(--accent2)">401k / Retirement</span><span style="color:var(--accent2)">-${fmt(data.retireAmt)}</span></div>` : ''}
-      ${data.health > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">Health Insurance</span><span>-${fmt(data.health)}</span></div>` : ''}
-      ${data.dental > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">Dental / Vision</span><span>-${fmt(data.dental)}</span></div>` : ''}
-      ${data.otherPretax > 0 ? `<div class="paycheck-row"><span style="color:var(--muted)">Other Pre-Tax</span><span>-${fmt(data.otherPretax)}</span></div>` : ''}
-      <div class="paycheck-row"><span style="color:var(--red)">Fed + State Tax (${gv(p+'-tax')}%)</span><span style="color:var(--red)">-${fmt(data.fedTax)}</span></div>
-      <div class="paycheck-row"><span style="color:var(--red)">FICA (${gv(p+'-fica')}%)</span><span style="color:var(--red)">-${fmt(data.fica)}</span></div>
-      <div class="paycheck-row total"><span>Take-Home Net</span><span style="color:var(--green)">${fmt(data.net)}</span></div>
+// ── Render the paycheck log table ────────────────────────
+function renderPaychecks(p) {
+  const container = document.getElementById(p+'-paychecks');
+  const summaryEl = document.getElementById(p+'-paycheck-summary');
+  if (!container) return;
+  const list = paychecks[p] || [];
+
+  if (list.length === 0) {
+    container.innerHTML = '<div class="pc-empty">No paychecks yet — click "+ Add Paycheck" above.</div>';
+    if (summaryEl) summaryEl.innerHTML = '';
+    return;
+  }
+
+  const rows = list.map(pc => {
+    const e = calcPaycheckEntry(p, pc);
+    return { pc, ...e };
+  });
+  const totalGross = rows.reduce((s,r) => s+r.gross, 0);
+  const totalNet   = rows.reduce((s,r) => s+r.net, 0);
+
+  const hasIncentive = gv(p+'-incentiveRate') > 0 || list.some(pc=>(pc.incentiveHours||0)>0);
+  const hasCall      = gv(p+'-callRate') > 0      || list.some(pc=>(pc.callHours||0)>0);
+  const hasCB        = gv(p+'-callbackRate') > 0  || list.some(pc=>(pc.callbackHours||0)>0);
+
+  container.innerHTML = `
+    <div class="pc-table-wrap">
+      <table class="pc-table">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding-left:8px">Label</th>
+            <th title="Regular hours">Reg Hrs</th>
+            <th title="Overtime hours">OT Hrs</th>
+            ${hasIncentive ? '<th title="Incentive hours">Inc Hrs</th>' : ''}
+            ${hasCall      ? '<th title="On-call hours">Call Hrs</th>' : ''}
+            ${hasCB        ? '<th title="Callback hours">CB Hrs</th>' : ''}
+            <th title="Per-paycheck bonus">Bonus</th>
+            <th title="One-time bonus this check">1× Bonus</th>
+            <th>Gross</th>
+            <th>Net</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(({pc, gross, net}) => `
+            <tr>
+              <td class="td-label"><input type="text" value="${pc.label||''}" onchange="updatePaycheck('${p}',${pc.id},'label',this.value)" /></td>
+              <td><input type="number" value="${pc.regHours||''}" min="0" step="0.5" placeholder="0" oninput="updatePaycheck('${p}',${pc.id},'regHours',this.value)" /></td>
+              <td><input type="number" value="${pc.otHours||''}" min="0" step="0.5" placeholder="0" oninput="updatePaycheck('${p}',${pc.id},'otHours',this.value)" /></td>
+              ${hasIncentive ? `<td><input type="number" value="${pc.incentiveHours||''}" min="0" step="0.5" placeholder="0" oninput="updatePaycheck('${p}',${pc.id},'incentiveHours',this.value)" /></td>` : ''}
+              ${hasCall      ? `<td><input type="number" value="${pc.callHours||''}" min="0" step="0.5" placeholder="0" oninput="updatePaycheck('${p}',${pc.id},'callHours',this.value)" /></td>` : ''}
+              ${hasCB        ? `<td><input type="number" value="${pc.callbackHours||''}" min="0" step="0.5" placeholder="0" oninput="updatePaycheck('${p}',${pc.id},'callbackHours',this.value)" /></td>` : ''}
+              <td><input type="number" value="${pc.bonus||''}" min="0" step="1" placeholder="0" oninput="updatePaycheck('${p}',${pc.id},'bonus',this.value)" /></td>
+              <td><input type="number" value="${pc.oneTimeBonus||''}" min="0" step="1" placeholder="0" oninput="updatePaycheck('${p}',${pc.id},'oneTimeBonus',this.value)" /></td>
+              <td class="td-money">${fmt(gross)}</td>
+              <td class="td-net">${fmt(net)}</td>
+              <td class="td-del"><button class="btn btn-danger" style="padding:3px 6px;font-size:0.72rem" onclick="removePaycheck('${p}',${pc.id})">×</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="${3 + (hasIncentive?1:0) + (hasCall?1:0) + (hasCB?1:0) + 2}" style="color:var(--muted);font-size:0.75rem;padding-left:8px">
+              ${list.length} paycheck${list.length>1?'s':''} · monthly total
+            </td>
+            <td class="td-money">${fmt(totalGross)}</td>
+            <td class="td-net">${fmt(totalNet)}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   `;
+
+  // Brief tax summary below table
+  if (summaryEl) {
+    const d = calcPerson(p);
+    summaryEl.innerHTML = `
+      <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:0.78rem;padding:8px 2px;">
+        <span style="color:var(--muted)">Gross: <strong style="color:var(--text)">${fmt(d.gross)}</strong></span>
+        <span style="color:var(--muted)">Pre-tax deductions: <strong style="color:var(--accent2)">-${fmt(d.totalPretax)}</strong></span>
+        <span style="color:var(--muted)">Taxes: <strong style="color:var(--red)">-${fmt(d.totalTax)}</strong></span>
+        <span style="color:var(--muted)">Monthly Net: <strong style="color:var(--green);font-size:0.88rem">${fmt(d.net)}</strong></span>
+      </div>`;
+  }
+}
+
+// ── Paycheck CRUD ────────────────────────────────────────
+function addPaycheck(p) {
+  if (!paychecks[p]) paychecks[p] = [];
+  paychecks[p].push({
+    id: Date.now(),
+    label: 'Paycheck ' + (paychecks[p].length + 1),
+    regHours: 0, otHours: 0, incentiveHours: 0,
+    callHours: 0, callbackHours: 0, bonus: 0, oneTimeBonus: 0
+  });
+  renderPaychecks(p);
+  recalc();
+}
+
+function removePaycheck(p, id) {
+  paychecks[p] = (paychecks[p] || []).filter(pc => pc.id !== id);
+  renderPaychecks(p);
+  recalc();
+}
+
+function updatePaycheck(p, id, field, val) {
+  const pc = (paychecks[p] || []).find(pc => pc.id === id);
+  if (!pc) return;
+  pc[field] = field === 'label' ? val : (parseFloat(val) || 0);
+  renderPaychecks(p);
+  recalc();
 }
 
 // ═══════════════════════════════════════════════
 // INCOME RECALC
 // ═══════════════════════════════════════════════
 function recalc() {
+  renderPaychecks('p1');
+  renderPaychecks('p2');
   const d1 = calcPerson('p1');
   const d2 = calcPerson('p2');
-  renderPaycheckSummary('p1', d1, 'p1-paycheck-summary');
-  renderPaycheckSummary('p2', d2, 'p2-paycheck-summary');
 
   const ppy = periodsPerYear();
-  const combinedNet = d1.net + d2.net;
+  const combinedNet = d1.net + d2.net;   // already monthly (sum of all paycheck rows)
   const combinedGross = d1.gross + d2.gross;
   const combinedRetire = d1.retireAmt + d2.retireAmt;
 
   document.getElementById('combined-net').textContent = fmt(combinedNet);
-  document.getElementById('combined-net-monthly').textContent =
-    ppy !== 12 ? `≈ ${fmt(combinedNet * ppy / 12)} / month` : '';
+  document.getElementById('combined-net-monthly').textContent = '';
   document.getElementById('combined-annual').textContent = fmt(combinedGross * ppy);
   document.getElementById('combined-annual-net').textContent = fmt(combinedNet * ppy);
   document.getElementById('combined-retirement').textContent = fmt(combinedRetire);
 
+  scheduleURLUpdate();
   saveLocal();
 }
 
@@ -820,13 +929,93 @@ function updateNames() {
 function getMonthlyNetIncome() {
   const d1 = calcPerson('p1');
   const d2 = calcPerson('p2');
-  return (d1.net + d2.net) * periodsPerYear() / 12;
+  return d1.net + d2.net;  // sum of all paycheck rows = monthly total
 }
 
 function getMonthlyRetirement() {
   const d1 = calcPerson('p1');
   const d2 = calcPerson('p2');
-  return (d1.retireAmt + d2.retireAmt) * periodsPerYear() / 12;
+  return d1.retireAmt + d2.retireAmt;
+}
+
+// ═══════════════════════════════════════════════
+// URL HASH SHARING
+// ═══════════════════════════════════════════════
+function collectExportData() {
+  const fieldIds = ['name1','name2','payPeriod','payday1','payday2',
+    'p1-hourly','p1-otMult','p1-incentiveRate','p1-callRate','p1-callbackRate',
+    'p1-bonus','p1-retirement','p1-health','p1-dental','p1-otherPretax','p1-tax','p1-fica',
+    'p2-hourly','p2-otMult','p2-incentiveRate','p2-callRate','p2-callbackRate',
+    'p2-bonus','p2-retirement','p2-health','p2-dental','p2-otherPretax','p2-tax','p2-fica'];
+  const fields = {};
+  fieldIds.forEach(id => { const el = document.getElementById(id); if (el) fields[id] = el.value; });
+  return { fields, paychecks, debts, budgetCats, goals, assets, extraLiabilities };
+}
+
+function applyImportedData(data) {
+  if (data.fields) {
+    Object.entries(data.fields).forEach(([id, val]) => {
+      const el = document.getElementById(id); if (el) el.value = val;
+    });
+  }
+  if (data.paychecks) paychecks = data.paychecks;
+  if (data.debts) { debts = data.debts; debts.forEach(d => { if (!d.paidMonths) d.paidMonths={}; if(d.paidOff===undefined) d.paidOff=false; }); }
+  if (data.budgetCats) budgetCats = data.budgetCats;
+  if (data.goals) goals = data.goals;
+  if (data.assets) assets = data.assets;
+  if (data.extraLiabilities) extraLiabilities = data.extraLiabilities;
+  updateNames();
+  renderPaychecks('p1');
+  renderPaychecks('p2');
+  recalc();
+  renderDebts();
+  renderCalendar();
+}
+
+function scheduleURLUpdate() {
+  clearTimeout(urlUpdateTimer);
+  urlUpdateTimer = setTimeout(() => {
+    try {
+      const json = JSON.stringify(collectExportData());
+      const encoded = btoa(unescape(encodeURIComponent(json)));
+      history.replaceState(null, '', '#data=' + encoded);
+    } catch(e) {}
+  }, 1000);
+}
+
+function loadFromURLHash() {
+  try {
+    const hash = window.location.hash;
+    if (!hash.startsWith('#data=')) return false;
+    const json = decodeURIComponent(escape(atob(hash.slice(6))));
+    applyImportedData(JSON.parse(json));
+    showToast('✅ Data loaded from shared link!');
+    return true;
+  } catch(e) { return false; }
+}
+
+function copyShareLink() {
+  try {
+    const json = JSON.stringify(collectExportData());
+    const encoded = btoa(unescape(encodeURIComponent(json)));
+    const url = window.location.href.split('#')[0] + '#data=' + encoded;
+    history.replaceState(null, '', '#data=' + encoded);
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(() => showToast('🔗 Share link copied to clipboard!'));
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = url; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      showToast('🔗 Share link copied to clipboard!');
+    }
+  } catch(e) { alert('Could not copy. Try the Export button instead.'); }
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.4s'; setTimeout(()=>t.remove(), 400); }, 2800);
 }
 
 // ═══════════════════════════════════════════════
@@ -1490,55 +1679,53 @@ function renderSummary() {
 // ═══════════════════════════════════════════════
 function saveLocal() {
   try {
-    const fieldsToSave = ['name1','name2','payPeriod','payday1','payday2',
-      'p1-hourly','p1-regHours','p1-otMult','p1-otHours','p1-incentiveRate','p1-incentiveHours',
-      'p1-callRate','p1-callHours','p1-callbackRate','p1-callbackHours',
-      'p1-bonus','p1-oneTimeBonus','p1-retirement','p1-health','p1-dental','p1-otherPretax','p1-tax','p1-fica',
-      'p2-hourly','p2-regHours','p2-otMult','p2-otHours','p2-incentiveRate','p2-incentiveHours',
-      'p2-callRate','p2-callHours','p2-callbackRate','p2-callbackHours',
-      'p2-bonus','p2-oneTimeBonus','p2-retirement','p2-health','p2-dental','p2-otherPretax','p2-tax','p2-fica'];
-    const fields = {};
-    fieldsToSave.forEach(id => { const el=document.getElementById(id); if(el) fields[id]=el.value; });
-    localStorage.setItem('ffp-fields', JSON.stringify(fields));
-    localStorage.setItem('ffp-debts', JSON.stringify(debts));
-    localStorage.setItem('ffp-budgetCats', JSON.stringify(budgetCats));
-    localStorage.setItem('ffp-goals', JSON.stringify(goals));
-    localStorage.setItem('ffp-assets', JSON.stringify(assets));
-    localStorage.setItem('ffp-extraLiab', JSON.stringify(extraLiabilities));
+    const data = collectExportData();
+    localStorage.setItem('ffp-v2', JSON.stringify(data));
   } catch(e) {}
 }
 
 function loadLocal() {
+  // Try new unified format first, then fall back to old separate keys
   try {
+    const raw = localStorage.getItem('ffp-v2');
+    if (raw) {
+      applyImportedData(JSON.parse(raw));
+      return;
+    }
+    // Legacy migration: load old separate keys
     const fields = JSON.parse(localStorage.getItem('ffp-fields')||'{}');
     Object.entries(fields).forEach(([id,val]) => { const el=document.getElementById(id); if(el) el.value=val; });
     debts = JSON.parse(localStorage.getItem('ffp-debts')||'[]');
-    // Migrate older saved debts that predate the paid-tracking fields
-    debts.forEach(d => {
-      if (!d.paidMonths) d.paidMonths = {};
-      if (d.paidOff === undefined) d.paidOff = false;
-    });
-    budgetCats = JSON.parse(localStorage.getItem('ffp-budgetCats')||'[]');
-    goals = JSON.parse(localStorage.getItem('ffp-goals')||'[]');
-    assets = JSON.parse(localStorage.getItem('ffp-assets')||'[]');
+    debts.forEach(d => { if(!d.paidMonths) d.paidMonths={}; if(d.paidOff===undefined) d.paidOff=false; });
+    budgetCats  = JSON.parse(localStorage.getItem('ffp-budgetCats')||'[]');
+    goals       = JSON.parse(localStorage.getItem('ffp-goals')||'[]');
+    assets      = JSON.parse(localStorage.getItem('ffp-assets')||'[]');
     extraLiabilities = JSON.parse(localStorage.getItem('ffp-extraLiab')||'[]');
+    // Migrate old single-period hours into first paycheck entry
+    ['p1','p2'].forEach(p => {
+      const rh = parseFloat(fields[p+'-regHours'])||0;
+      const oh = parseFloat(fields[p+'-otHours'])||0;
+      const ih = parseFloat(fields[p+'-incentiveHours'])||0;
+      const ch = parseFloat(fields[p+'-callHours'])||0;
+      const cbh = parseFloat(fields[p+'-callbackHours'])||0;
+      const ob = parseFloat(fields[p+'-oneTimeBonus'])||0;
+      if (rh||oh||ih||ch||cbh||ob) {
+        paychecks[p] = [{ id: Date.now()+Math.random(), label: 'Paycheck 1',
+          regHours:rh, otHours:oh, incentiveHours:ih, callHours:ch, callbackHours:cbh,
+          bonus:0, oneTimeBonus:ob }];
+      }
+    });
   } catch(e) {}
   updateNames();
+  renderPaychecks('p1');
+  renderPaychecks('p2');
+  recalc();
   renderDebts();
   renderCalendar();
 }
 
 function exportData() {
-  const fieldsToSave = ['name1','name2','payPeriod','payday1','payday2',
-    'p1-hourly','p1-regHours','p1-otMult','p1-otHours','p1-incentiveRate','p1-incentiveHours',
-    'p1-callRate','p1-callHours','p1-callbackRate','p1-callbackHours',
-    'p1-bonus','p1-oneTimeBonus','p1-retirement','p1-health','p1-dental','p1-otherPretax','p1-tax','p1-fica',
-    'p2-hourly','p2-regHours','p2-otMult','p2-otHours','p2-incentiveRate','p2-incentiveHours',
-    'p2-callRate','p2-callHours','p2-callbackRate','p2-callbackHours',
-    'p2-bonus','p2-oneTimeBonus','p2-retirement','p2-health','p2-dental','p2-otherPretax','p2-tax','p2-fica'];
-  const fields = {};
-  fieldsToSave.forEach(id => { const el=document.getElementById(id); if(el) fields[id]=el.value; });
-  const data = { fields, debts, budgetCats, goals, assets, extraLiabilities };
+  const data = collectExportData();
   const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1553,25 +1740,21 @@ function loadImport(event) {
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      const data = JSON.parse(e.target.result);
-      if(data.fields) Object.entries(data.fields).forEach(([id,val])=>{ const el=document.getElementById(id); if(el) el.value=val; });
-      if(data.debts) debts=data.debts;
-      if(data.budgetCats) budgetCats=data.budgetCats;
-      if(data.goals) goals=data.goals;
-      if(data.assets) assets=data.assets;
-      if(data.extraLiabilities) extraLiabilities=data.extraLiabilities;
-      updateNames(); recalc(); renderDebts(); renderCalendar(); saveLocal();
-      alert('Data imported successfully!');
+      applyImportedData(JSON.parse(e.target.result));
+      saveLocal();
+      showToast('✅ Data imported successfully!');
     } catch(err) { alert('Import failed — invalid file.'); }
   };
   reader.readAsText(file);
 }
 
 // ═══════════════════════════════════════════════
-// INIT
+// INIT — URL hash takes priority over localStorage
 // ═══════════════════════════════════════════════
-loadLocal();
-recalc();
+if (!loadFromURLHash()) {
+  loadLocal();
+  recalc();
+}
 </script>
 </body>
 </html>
