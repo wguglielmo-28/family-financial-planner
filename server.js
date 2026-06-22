@@ -31,8 +31,9 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'dev-insecure-secret-change
 const IS_PROD = process.env.NODE_ENV === 'production';
 const ALLOWED_EMAILS = (process.env.ALLOWED_EMAILS || '')
   .split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
-// Dev login is only available when there's no Google client AND we're not in prod.
-const DEV_LOGIN = !GOOGLE_CLIENT_ID && !IS_PROD;
+// Dev login is only available locally: no Google client, not prod, and no real DB.
+// As soon as a database is attached (production), dev login is off automatically.
+const DEV_LOGIN = !GOOGLE_CLIENT_ID && !IS_PROD && !process.env.DATABASE_URL;
 
 const COOKIE_NAME = 'fy_session';
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
@@ -48,9 +49,13 @@ let pgPool = null;
 async function initStore() {
   if (process.env.DATABASE_URL) {
     const { Pool } = require('pg');
+    const cs = process.env.DATABASE_URL;
+    // Railway's private network (postgres.railway.internal) is plaintext; the
+    // public proxy needs SSL. Only enable SSL when it's not an internal/local host.
+    const needsSSL = !/\.railway\.internal|localhost|127\.0\.0\.1/.test(cs);
     pgPool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
+      connectionString: cs,
+      ssl: needsSSL ? { rejectUnauthorized: false } : false,
     });
     await pgPool.query(`
       CREATE TABLE IF NOT EXISTS household (
@@ -108,21 +113,26 @@ async function saveState(data, version, updatedBy) {
 /* ---------------------------------------------------------------------------
  * Sessions (signed JWT in an httpOnly cookie)
  * ------------------------------------------------------------------------- */
-function issueSession(res, user) {
+// True when the request arrived over HTTPS (directly or via Railway's TLS proxy).
+function isSecure(req) {
+  return req.secure || (req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https';
+}
+
+function issueSession(req, res, user) {
   const token = jwt.sign(
     { email: user.email, name: user.name }, SESSION_SECRET, { expiresIn: '60d' });
   res.setHeader('Set-Cookie', cookie.serialize(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: IS_PROD,
+    secure: isSecure(req),
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 60,
     path: '/',
   }));
 }
 
-function clearSession(res) {
+function clearSession(req, res) {
   res.setHeader('Set-Cookie', cookie.serialize(COOKIE_NAME, '', {
-    httpOnly: true, secure: IS_PROD, sameSite: 'lax', maxAge: 0, path: '/',
+    httpOnly: true, secure: isSecure(req), sameSite: 'lax', maxAge: 0, path: '/',
   }));
 }
 
@@ -146,6 +156,7 @@ function emailAllowed(email) {
  * HTTP / Express
  * ------------------------------------------------------------------------- */
 const app = express();
+app.set('trust proxy', 1); // behind Railway's TLS-terminating proxy
 app.use(express.json({ limit: '5mb' }));
 
 app.get('/api/config', (req, res) => {
@@ -163,7 +174,7 @@ app.post('/api/auth', async (req, res) => {
     // Dev login path (no Google configured, non-prod)
     if (DEV_LOGIN && req.body && req.body.devName) {
       const user = { email: 'dev@local', name: String(req.body.devName).slice(0, 40) };
-      issueSession(res, user);
+      issueSession(req, res, user);
       return res.json({ user });
     }
     // Google Sign-In path
@@ -176,7 +187,7 @@ app.post('/api/auth', async (req, res) => {
     if (!payload.email_verified) return res.status(403).json({ error: 'email not verified' });
     if (!emailAllowed(email)) return res.status(403).json({ error: 'not authorized' });
     const user = { email, name: payload.given_name || payload.name || email };
-    issueSession(res, user);
+    issueSession(req, res, user);
     res.json({ user });
   } catch (e) {
     console.error('[auth] error', e.message);
@@ -184,7 +195,7 @@ app.post('/api/auth', async (req, res) => {
   }
 });
 
-app.post('/api/logout', (req, res) => { clearSession(res); res.json({ ok: true }); });
+app.post('/api/logout', (req, res) => { clearSession(req, res); res.json({ ok: true }); });
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
