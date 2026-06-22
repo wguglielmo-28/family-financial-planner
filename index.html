@@ -828,15 +828,15 @@ function renderPaychecks(p) {
           ${rows.map(({pc, gross, net}) => `
             <tr>
               <td class="td-label"><input type="text" value="${pc.label||''}" onchange="updatePaycheck('${p}',${pc.id},'label',this.value)" /></td>
-              <td><input type="number" value="${pc.regHours||''}" min="0" step="0.5" placeholder="0" onchange="updatePaycheck('${p}',${pc.id},'regHours',this.value)" /></td>
-              <td><input type="number" value="${pc.otHours||''}" min="0" step="0.5" placeholder="0" onchange="updatePaycheck('${p}',${pc.id},'otHours',this.value)" /></td>
-              ${hasIncentive ? `<td><input type="number" value="${pc.incentiveHours||''}" min="0" step="0.5" placeholder="0" onchange="updatePaycheck('${p}',${pc.id},'incentiveHours',this.value)" /></td>` : ''}
-              ${hasCall      ? `<td><input type="number" value="${pc.callHours||''}" min="0" step="0.5" placeholder="0" onchange="updatePaycheck('${p}',${pc.id},'callHours',this.value)" /></td>` : ''}
-              ${hasCB        ? `<td><input type="number" value="${pc.callbackHours||''}" min="0" step="0.5" placeholder="0" onchange="updatePaycheck('${p}',${pc.id},'callbackHours',this.value)" /></td>` : ''}
-              <td><input type="number" value="${pc.bonus||''}" min="0" step="1" placeholder="0" onchange="updatePaycheck('${p}',${pc.id},'bonus',this.value)" /></td>
-              <td><input type="number" value="${pc.oneTimeBonus||''}" min="0" step="1" placeholder="0" onchange="updatePaycheck('${p}',${pc.id},'oneTimeBonus',this.value)" /></td>
-              <td class="td-money">${fmt(gross)}</td>
-              <td class="td-net">${fmt(net)}</td>
+              <td><input type="number" value="${pc.regHours||''}" min="0" step="0.5" placeholder="0" oninput="updatePaycheck('${p}',${pc.id},'regHours',this.value)" /></td>
+              <td><input type="number" value="${pc.otHours||''}" min="0" step="0.5" placeholder="0" oninput="updatePaycheck('${p}',${pc.id},'otHours',this.value)" /></td>
+              ${hasIncentive ? `<td><input type="number" value="${pc.incentiveHours||''}" min="0" step="0.5" placeholder="0" oninput="updatePaycheck('${p}',${pc.id},'incentiveHours',this.value)" /></td>` : ''}
+              ${hasCall      ? `<td><input type="number" value="${pc.callHours||''}" min="0" step="0.5" placeholder="0" oninput="updatePaycheck('${p}',${pc.id},'callHours',this.value)" /></td>` : ''}
+              ${hasCB        ? `<td><input type="number" value="${pc.callbackHours||''}" min="0" step="0.5" placeholder="0" oninput="updatePaycheck('${p}',${pc.id},'callbackHours',this.value)" /></td>` : ''}
+              <td><input type="number" value="${pc.bonus||''}" min="0" step="1" placeholder="0" oninput="updatePaycheck('${p}',${pc.id},'bonus',this.value)" /></td>
+              <td><input type="number" value="${pc.oneTimeBonus||''}" min="0" step="1" placeholder="0" oninput="updatePaycheck('${p}',${pc.id},'oneTimeBonus',this.value)" /></td>
+              <td class="td-money" id="pc-gross-${p}-${pc.id}">${fmt(gross)}</td>
+              <td class="td-net" id="pc-net-${p}-${pc.id}">${fmt(net)}</td>
               <td class="td-del"><button class="btn btn-danger" style="padding:3px 6px;font-size:0.72rem" onclick="removePaycheck('${p}',${pc.id})">×</button></td>
             </tr>
           `).join('')}
@@ -846,8 +846,8 @@ function renderPaychecks(p) {
             <td colspan="${3 + (hasIncentive?1:0) + (hasCall?1:0) + (hasCB?1:0) + 2}" style="color:var(--muted);font-size:0.75rem;padding-left:8px">
               ${list.length} paycheck${list.length>1?'s':''} · monthly total
             </td>
-            <td class="td-money">${fmt(totalGross)}</td>
-            <td class="td-net">${fmt(totalNet)}</td>
+            <td class="td-money" id="pc-footer-gross-${p}">${fmt(totalGross)}</td>
+            <td class="td-net" id="pc-footer-net-${p}">${fmt(totalNet)}</td>
             <td></td>
           </tr>
         </tfoot>
@@ -887,11 +887,55 @@ function removePaycheck(p, id) {
   recalc();
 }
 
+function refreshPaycheckCalcs(p) {
+  const list = paychecks[p] || [];
+  let totalGross = 0, totalNet = 0;
+  for (const pc of list) {
+    const e = calcPaycheckEntry(p, pc);
+    totalGross += e.gross;
+    totalNet   += e.net;
+    const gEl = document.getElementById('pc-gross-' + p + '-' + pc.id);
+    const nEl = document.getElementById('pc-net-'   + p + '-' + pc.id);
+    if (gEl) gEl.textContent = fmt(e.gross);
+    if (nEl) nEl.textContent = fmt(e.net);
+  }
+  const fgEl = document.getElementById('pc-footer-gross-' + p);
+  const fnEl = document.getElementById('pc-footer-net-'   + p);
+  if (fgEl) fgEl.textContent = fmt(totalGross);
+  if (fnEl) fnEl.textContent = fmt(totalNet);
+  const summaryEl = document.getElementById(p + '-paycheck-summary');
+  if (summaryEl) {
+    const d = calcPerson(p);
+    summaryEl.innerHTML = `<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:0.78rem;padding:8px 2px;">
+      <span style="color:var(--muted)">Gross: <strong style="color:var(--text)">${fmt(d.gross)}</strong></span>
+      <span style="color:var(--muted)">Pre-tax deductions: <strong style="color:var(--accent2)">-${fmt(d.totalPretax)}</strong></span>
+      <span style="color:var(--muted)">Taxes: <strong style="color:var(--red)">-${fmt(d.totalTax)}</strong></span>
+      <span style="color:var(--muted)">Monthly Net: <strong style="color:var(--green);font-size:0.88rem">${fmt(d.net)}</strong></span>
+    </div>`;
+  }
+}
+
 function updatePaycheck(p, id, field, val) {
   const pc = (paychecks[p] || []).find(pc => pc.id === id);
   if (!pc) return;
+
+  // Detect if optional columns will appear/disappear (needs full re-render)
+  const list = paychecks[p] || [];
+  const hadInc = gv(p+'-incentiveRate') > 0 || list.some(x => (x.incentiveHours||0) > 0);
+  const hadCall = gv(p+'-callRate')     > 0 || list.some(x => (x.callHours||0)     > 0);
+  const hadCB   = gv(p+'-callbackRate') > 0 || list.some(x => (x.callbackHours||0) > 0);
+
   pc[field] = field === 'label' ? val : (parseFloat(val) || 0);
-  renderPaychecks(p);
+
+  const hasInc  = gv(p+'-incentiveRate') > 0 || list.some(x => (x.incentiveHours||0) > 0);
+  const hasCall = gv(p+'-callRate')     > 0 || list.some(x => (x.callHours||0)     > 0);
+  const hasCB   = gv(p+'-callbackRate') > 0 || list.some(x => (x.callbackHours||0) > 0);
+
+  if (hadInc !== hasInc || hadCall !== hasCall || hadCB !== hasCB) {
+    renderPaychecks(p); // column structure changed — must rebuild
+  } else {
+    refreshPaycheckCalcs(p); // only update the output cells, inputs untouched
+  }
   recalc();
 }
 
@@ -899,8 +943,8 @@ function updatePaycheck(p, id, field, val) {
 // INCOME RECALC
 // ═══════════════════════════════════════════════
 function recalc() {
-  renderPaychecks('p1');
-  renderPaychecks('p2');
+  refreshPaycheckCalcs('p1');
+  refreshPaycheckCalcs('p2');
   const d1 = calcPerson('p1');
   const d2 = calcPerson('p2');
 
