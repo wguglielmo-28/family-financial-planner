@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "financial-planner",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-p", "3456", "-s", "."],
-      "port": 3456
+      "name": "family-ynab",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "port": 3000
     }
   ]
 }

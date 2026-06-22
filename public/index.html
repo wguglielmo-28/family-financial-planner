@@ -224,28 +224,98 @@
     /* ── Share link toast ── */
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--green); color: var(--green); padding: 10px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; z-index: 9999; animation: fadeInUp 0.2s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
     @keyframes fadeInUp { from { opacity:0; transform: translateX(-50%) translateY(10px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+    /* ── Login gate ── */
+    .login-gate { position: fixed; inset: 0; z-index: 10000; background: var(--bg); display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 24px; text-align: center; }
+    .login-gate.hidden { display: none; }
+    .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 38px 32px; max-width: 380px; width: 100%; }
+    .login-card .logo { font-size: 2.4rem; }
+    .login-card h2 { font-size: 1.3rem; margin: 10px 0 6px; background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .login-card p { font-size: 0.85rem; color: var(--muted); margin-bottom: 24px; }
+    #gbtn { display: flex; justify-content: center; }
+    .login-err { color: var(--red); font-size: 0.82rem; margin-top: 14px; min-height: 1em; }
+    .dev-login { display: flex; gap: 8px; }
+    .dev-login input { flex: 1; }
+
+    /* ── Sync status chip ── */
+    .sync-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--muted); padding: 5px 10px; border: 1px solid var(--border); border-radius: 20px; white-space: nowrap; }
+    .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+    .sync-chip.online .sync-dot, .sync-chip.synced .sync-dot { background: var(--green); }
+    .sync-chip.saving .sync-dot { background: var(--yellow); }
+    .sync-chip.offline .sync-dot { background: var(--red); }
+
+    /* ── YNAB budget ── */
+    .ynab-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+    .ynab-month { font-weight:700; font-size:1.05rem; min-width:150px; text-align:center; }
+    .rta-banner { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; background: var(--surface2); border:1px solid var(--border); border-radius: var(--radius); padding:14px 18px; margin-bottom:16px; }
+    .rta-amount { font-size:1.6rem; font-weight:800; }
+    .rta-pos { color: var(--green); } .rta-neg { color: var(--red); } .rta-zero { color: var(--muted); }
+    .ynab-table { width:100%; border-collapse:collapse; font-size:0.84rem; }
+    .ynab-table th { text-align:right; padding:8px 10px; font-size:0.66rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); border-bottom:1px solid var(--border); }
+    .ynab-table th:first-child { text-align:left; }
+    .ynab-table td { padding:6px 10px; border-bottom:1px solid rgba(46,51,71,0.6); text-align:right; }
+    .ynab-table td:first-child { text-align:left; }
+    .ynab-grouprow td { background: var(--surface2); font-weight:700; font-size:0.74rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted); }
+    .ynab-assign-input { width:92px; text-align:right; background:transparent; border:1px solid transparent; border-radius:5px; color:var(--text); padding:4px 6px; font-size:0.84rem; }
+    .ynab-assign-input:hover { border-color:var(--border); }
+    .ynab-assign-input:focus { outline:none; border-color:var(--accent); background:var(--bg); }
+    .avail-pos { color: var(--green); font-weight:600; }
+    .avail-neg { color: var(--red); font-weight:600; }
+    .avail-zero { color: var(--muted); }
+    .ynab-acct { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:0.86rem; }
+    .ynab-acct:last-child { border-bottom:none; }
+    .reg-table { width:100%; border-collapse:collapse; font-size:0.8rem; }
+    .reg-table th { text-align:left; padding:7px 8px; font-size:0.64rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted); border-bottom:1px solid var(--border); white-space:nowrap; }
+    .reg-table td { padding:6px 8px; border-bottom:1px solid rgba(46,51,71,0.6); vertical-align:middle; }
+    .reg-out { color: var(--red); font-weight:600; text-align:right; white-space:nowrap; }
+    .reg-in { color: var(--green); font-weight:600; text-align:right; white-space:nowrap; }
+    .link-btn { background:none; border:none; color:var(--accent); cursor:pointer; font-size:inherit; padding:0; }
+    .muted-sm { font-size:0.75rem; color:var(--muted); }
   </style>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+
+<!-- ════════════ LOGIN GATE ════════════ -->
+<div id="login-gate" class="login-gate">
+  <div class="login-card">
+    <div class="logo">💰</div>
+    <h2>Family YNAB</h2>
+    <p>Sign in to open your shared household budget.</p>
+    <div id="gbtn"></div>
+    <div id="dev-login-box" style="display:none">
+      <div class="dev-login">
+        <input type="text" id="dev-name" placeholder="Your name" onkeydown="if(event.key==='Enter')devSignIn()" />
+        <button class="btn btn-primary" onclick="devSignIn()">Enter</button>
+      </div>
+      <p class="muted-sm" style="margin-top:10px">Dev mode — Google sign-in not configured.</p>
+    </div>
+    <div id="login-err" class="login-err"></div>
+  </div>
+</div>
 
 <header>
   <span style="font-size:1.7rem">💰</span>
   <div>
-    <h1>Family Financial Planner</h1>
-    <div class="sub">Income · Debts · Budget · Payoff · Goals · Net Worth</div>
+    <h1>Family YNAB</h1>
+    <div class="sub">Income · YNAB Budget · Debts · Payoff · Goals · Net Worth</div>
   </div>
-  <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
-    <button class="btn btn-primary btn-sm" onclick="copyShareLink()" title="Encode all data into the URL so anyone with the link sees your data">🔗 Copy Share Link</button>
+  <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <span id="sync-chip" class="sync-chip" title="Sync status"><span class="sync-dot"></span><span id="sync-text">Connecting…</span></span>
     <button class="btn btn-ghost btn-sm" onclick="exportData()">💾 Export</button>
     <button class="btn btn-ghost btn-sm" onclick="importData()">📂 Import</button>
     <input type="file" id="import-file" accept=".json" style="display:none" onchange="loadImport(event)" />
+    <span id="user-box" style="display:none;align-items:center;gap:8px;">
+      <span id="user-name" class="muted-sm"></span>
+      <button class="btn btn-ghost btn-sm" onclick="signOut()">Sign out</button>
+    </span>
   </div>
 </header>
 
 <div class="tabs">
   <button class="tab-btn active" onclick="showTab('income',this)">📊 Income</button>
+  <button class="tab-btn" onclick="showTab('ynab',this)">🧮 YNAB Budget</button>
   <button class="tab-btn" onclick="showTab('debts',this)">💳 Debts & Bills</button>
-  <button class="tab-btn" onclick="showTab('budget',this)">📋 Budget</button>
+  <button class="tab-btn" onclick="showTab('budget',this)">📋 Budget Guide</button>
   <button class="tab-btn" onclick="showTab('payoff',this)">🎯 Payoff Plan</button>
   <button class="tab-btn" onclick="showTab('goals',this)">🏆 Goals</button>
   <button class="tab-btn" onclick="showTab('networth',this)">📈 Net Worth</button>
@@ -393,6 +463,99 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     YNAB BUDGET TAB  (zero-based "give every dollar a job")
+════════════════════════════════════════════════════ -->
+<div id="tab-ynab" class="tab-content">
+  <div class="ynab-toolbar">
+    <button class="btn btn-ghost btn-sm" onclick="ynabChangeMonth(-1)">‹ Prev</button>
+    <span class="ynab-month" id="ynab-month-label"></span>
+    <button class="btn btn-ghost btn-sm" onclick="ynabChangeMonth(1)">Next ›</button>
+    <button class="btn btn-ghost btn-sm" onclick="ynabToday()">Today</button>
+    <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="importPaychecksToBudget()" title="Add this month's logged paychecks (net) as income to assign">⬇️ Send paychecks to budget</button>
+  </div>
+
+  <div class="rta-banner">
+    <div>
+      <div class="muted-sm" style="text-transform:uppercase;letter-spacing:0.05em">Ready to Assign</div>
+      <div class="rta-amount" id="rta-amount">$0.00</div>
+    </div>
+    <div class="muted-sm" id="rta-hint" style="max-width:340px;text-align:right">Every dollar of income should get a job. Assign until this reaches $0.</div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">📦 Budget — <span id="ynab-budget-month"></span></div>
+      <div style="overflow-x:auto">
+        <table class="ynab-table">
+          <thead><tr><th>Category</th><th>Assigned</th><th>Activity</th><th>Available</th><th></th></tr></thead>
+          <tbody id="ynab-budget-body"></tbody>
+        </table>
+      </div>
+      <div id="ynab-empty" class="empty-state" style="display:none">No categories yet. Add a group and categories on the right, or click "Add a starter set" →</div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-title">🏦 Accounts</div>
+        <div id="ynab-accounts-list"><div class="empty-state" style="padding:12px">No accounts yet.</div></div>
+        <hr class="divider" />
+        <div style="display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:end">
+          <div class="field"><label>Account Name</label><input type="text" id="acct-name" placeholder="e.g. Checking" /></div>
+          <div class="field"><label>Type</label>
+            <select id="acct-type">
+              <option value="checking">Checking</option>
+              <option value="savings">Savings</option>
+              <option value="cash">Cash</option>
+              <option value="credit">Credit Card</option>
+            </select>
+          </div>
+          <div class="field"><label>&nbsp;</label><button class="btn btn-primary" onclick="addAccount()">+ Add</button></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🗂️ Groups & Categories</div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-bottom:10px">
+          <div class="field"><label>New Group</label><input type="text" id="grp-name" placeholder="e.g. Monthly Bills" /></div>
+          <div class="field"><label>&nbsp;</label><button class="btn btn-primary" onclick="addGroup()">+ Group</button></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end">
+          <div class="field"><label>Group</label><select id="cat-group"></select></div>
+          <div class="field"><label>New Category</label><input type="text" id="cat-name" placeholder="e.g. Groceries" /></div>
+          <div class="field"><label>&nbsp;</label><button class="btn btn-primary" onclick="addCategory()">+ Cat</button></div>
+        </div>
+        <button class="link-btn" style="margin-top:12px" onclick="seedStarterBudget()">✨ Add a starter set of groups &amp; categories</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="justify-content:space-between">
+      <span>🧾 Transactions</span>
+      <span class="muted-sm" id="reg-count"></span>
+    </div>
+    <div class="add-form" style="margin-bottom:14px">
+      <div style="display:grid;grid-template-columns:auto 1.3fr 1.3fr 1.6fr 1fr 1fr auto;gap:8px;align-items:end">
+        <div class="field"><label>Date</label><input type="date" id="tx-date" /></div>
+        <div class="field"><label>Account</label><select id="tx-account"></select></div>
+        <div class="field"><label>Payee</label><input type="text" id="tx-payee" placeholder="e.g. Kroger" /></div>
+        <div class="field"><label>Category</label><select id="tx-category"></select></div>
+        <div class="field"><label>Outflow</label><div class="prefix-input"><span>$</span><input type="number" id="tx-outflow" placeholder="0.00" min="0" step="0.01" /></div></div>
+        <div class="field"><label>Inflow</label><div class="prefix-input"><span>$</span><input type="number" id="tx-inflow" placeholder="0.00" min="0" step="0.01" /></div></div>
+        <div class="field"><label>&nbsp;</label><button class="btn btn-primary" onclick="addTxn()">+ Add</button></div>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="reg-table">
+        <thead><tr><th>Date</th><th>Account</th><th>Payee</th><th>Category</th><th style="text-align:right">Outflow</th><th style="text-align:right">Inflow</th><th></th></tr></thead>
+        <tbody id="reg-body"></tbody>
+      </table>
+    </div>
+    <div id="reg-empty" class="empty-state" style="display:none">No transactions yet.</div>
   </div>
 </div>
 
@@ -708,6 +871,15 @@ let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 let urlUpdateTimer = null;
 
+// ── YNAB budgeting state ──
+let ynab = { accounts: [], groups: [], cats: [], txns: [], budgeted: {} };
+let ynabMonth = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+const INCOME_CAT = '_income'; // special "Inflow: Ready to Assign" category
+
+// ── Realtime sync state ──
+let ws = null, knownVersion = 0, currentUser = null, applyingRemote = false;
+let pushTimer = null, dirtyOffline = false, pendingRemoteData = null, reconnectTimer = null;
+
 // ═══════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════
@@ -993,7 +1165,7 @@ function collectExportData() {
     'p2-bonus','p2-retirement','p2-health','p2-dental','p2-otherPretax','p2-tax','p2-fica'];
   const fields = {};
   fieldIds.forEach(id => { const el = document.getElementById(id); if (el) fields[id] = el.value; });
-  return { fields, paychecks, debts, budgetCats, goals, assets, extraLiabilities };
+  return { fields, paychecks, debts, budgetCats, goals, assets, extraLiabilities, ynab };
 }
 
 function applyImportedData(data) {
@@ -1008,12 +1180,14 @@ function applyImportedData(data) {
   if (data.goals) goals = data.goals;
   if (data.assets) assets = data.assets;
   if (data.extraLiabilities) extraLiabilities = data.extraLiabilities;
+  if (data.ynab) ynab = Object.assign({ accounts: [], groups: [], cats: [], txns: [], budgeted: {} }, data.ynab);
   updateNames();
   renderPaychecks('p1');
   renderPaychecks('p2');
   recalc();
   renderDebts();
   renderCalendar();
+  renderYnab();
 }
 
 function scheduleURLUpdate() {
@@ -1070,7 +1244,7 @@ function showTab(name, btn) {
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   if (btn) btn.classList.add('active');
-  const renders = { budget: renderBudget, payoff: recalcPayoff, goals: renderGoals, networth: renderNetWorth, calendar: renderCalendar, summary: renderSummary };
+  const renders = { ynab: renderYnab, budget: renderBudget, payoff: recalcPayoff, goals: renderGoals, networth: renderNetWorth, calendar: renderCalendar, summary: renderSummary };
   if (renders[name]) renders[name]();
 }
 
@@ -1729,6 +1903,7 @@ function saveLocal() {
     const data = collectExportData();
     localStorage.setItem('ffp-v2', JSON.stringify(data));
   } catch(e) {}
+  schedulePush(); // push the change to the cloud (debounced) for the other device
 }
 
 function loadLocal() {
@@ -1796,12 +1971,468 @@ function loadImport(event) {
 }
 
 // ═══════════════════════════════════════════════
+// YNAB BUDGETING  (zero-based "give every dollar a job")
+// ═══════════════════════════════════════════════
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function dollarsToCents(v) { return Math.round((parseFloat(v) || 0) * 100); }
+function fmtCents(c) {
+  const neg = c < 0;
+  const s = '$' + (Math.abs(c) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return neg ? '-' + s : s;
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function setText(id, txt) { const el = document.getElementById(id); if (el) el.textContent = txt; }
+function ymOf(dateStr) { return (dateStr || '').slice(0, 7); }
+function addMonth(ym, delta) {
+  let [y, m] = ym.split('-').map(Number);
+  m += delta; y += Math.floor((m - 1) / 12); m = ((m - 1) % 12 + 12) % 12 + 1;
+  return y + '-' + String(m).padStart(2, '0');
+}
+function monthLabel(ym) {
+  const [y, m] = ym.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+}
+
+// ── calculations ──
+function allDataMonths() {
+  const set = new Set([ynabMonth]);
+  Object.keys(ynab.budgeted || {}).forEach(m => set.add(m));
+  (ynab.txns || []).forEach(t => { if (t.date) set.add(ymOf(t.date)); });
+  return [...set].sort();
+}
+function monthsUpTo(ym) {
+  const months = allDataMonths();
+  const start = months[0] && months[0] < ym ? months[0] : ym;
+  const out = []; let cur = start;
+  for (let i = 0; i < 600 && cur <= ym; i++) { out.push(cur); cur = addMonth(cur, 1); }
+  return out;
+}
+function catActivity(catId, ym) {
+  return (ynab.txns || []).filter(t => t.categoryId === catId && ymOf(t.date) === ym)
+    .reduce((s, t) => s + (t.amount || 0), 0);
+}
+function catAssigned(catId, ym) { return (ynab.budgeted[ym] && ynab.budgeted[ym][catId]) || 0; }
+function catAvailable(catId, ym) {
+  let avail = 0;
+  for (const m of monthsUpTo(ym)) avail += catAssigned(catId, m) + catActivity(catId, m);
+  return avail;
+}
+function assignedTotalAll() {
+  let s = 0;
+  for (const m in ynab.budgeted) for (const c in ynab.budgeted[m]) s += ynab.budgeted[m][c] || 0;
+  return s;
+}
+function incomeTotalAll() {
+  return (ynab.txns || []).filter(t => t.categoryId === INCOME_CAT).reduce((s, t) => s + (t.amount || 0), 0);
+}
+function readyToAssign() { return incomeTotalAll() - assignedTotalAll(); }
+function accountBalance(acctId) {
+  return (ynab.txns || []).filter(t => t.accountId === acctId).reduce((s, t) => s + (t.amount || 0), 0);
+}
+function catName(catId) {
+  if (catId === INCOME_CAT) return 'Inflow: Ready to Assign';
+  const c = ynab.cats.find(x => x.id === catId); return c ? c.name : '— uncategorized';
+}
+function acctName(id) { const a = ynab.accounts.find(x => x.id === id); return a ? a.name : '—'; }
+
+// ── CRUD ──
+function addAccount() {
+  const name = (document.getElementById('acct-name').value || '').trim();
+  if (!name) { alert('Enter an account name.'); return; }
+  ynab.accounts.push({ id: uid(), name, type: gs('acct-type'), onBudget: true, closed: false });
+  document.getElementById('acct-name').value = '';
+  renderYnab(); saveLocal();
+}
+function removeAccount(id) {
+  if (!confirm('Delete this account? Its transactions will also be removed.')) return;
+  ynab.accounts = ynab.accounts.filter(a => a.id !== id);
+  ynab.txns = ynab.txns.filter(t => t.accountId !== id);
+  renderYnab(); saveLocal();
+}
+function addGroup() {
+  const name = (document.getElementById('grp-name').value || '').trim();
+  if (!name) { alert('Enter a group name.'); return; }
+  ynab.groups.push({ id: uid(), name });
+  document.getElementById('grp-name').value = '';
+  renderYnab(); saveLocal();
+}
+function removeGroup(id) {
+  if (!confirm('Delete this group and all its categories?')) return;
+  const catIds = ynab.cats.filter(c => c.groupId === id).map(c => c.id);
+  ynab.groups = ynab.groups.filter(g => g.id !== id);
+  ynab.cats = ynab.cats.filter(c => c.groupId !== id);
+  ynab.txns.forEach(t => { if (catIds.includes(t.categoryId)) t.categoryId = null; });
+  renderYnab(); saveLocal();
+}
+function addCategory() {
+  const name = (document.getElementById('cat-name').value || '').trim();
+  const groupId = gs('cat-group');
+  if (!name) { alert('Enter a category name.'); return; }
+  if (!groupId) { alert('Create a group first, then pick it.'); return; }
+  ynab.cats.push({ id: uid(), groupId, name });
+  document.getElementById('cat-name').value = '';
+  renderYnab(); saveLocal();
+}
+function removeCategory(id) {
+  if (!confirm('Delete this category?')) return;
+  ynab.cats = ynab.cats.filter(c => c.id !== id);
+  ynab.txns.forEach(t => { if (t.categoryId === id) t.categoryId = null; });
+  for (const m in ynab.budgeted) delete ynab.budgeted[m][id];
+  renderYnab(); saveLocal();
+}
+function renameItem(kind, id) {
+  const list = kind === 'group' ? ynab.groups : kind === 'cat' ? ynab.cats : ynab.accounts;
+  const item = list.find(x => x.id === id); if (!item) return;
+  const v = prompt('Rename:', item.name); if (v == null) return;
+  item.name = v.trim() || item.name; renderYnab(); saveLocal();
+}
+function setAssigned(catId, val) {
+  if (!ynab.budgeted[ynabMonth]) ynab.budgeted[ynabMonth] = {};
+  ynab.budgeted[ynabMonth][catId] = dollarsToCents(val);
+  renderYnab(); saveLocal();
+}
+function addTxn() {
+  const acct = gs('tx-account');
+  if (!acct) { alert('Add an account first.'); return; }
+  const out = dollarsToCents(gv('tx-outflow')), inn = dollarsToCents(gv('tx-inflow'));
+  const amount = inn - out;
+  if (amount === 0) { alert('Enter an outflow or inflow amount.'); return; }
+  ynab.txns.push({
+    id: uid(), accountId: acct, date: gs('tx-date') || new Date().toISOString().slice(0, 10),
+    payee: (document.getElementById('tx-payee').value || '').trim(),
+    categoryId: gs('tx-category') || null, amount, cleared: false,
+  });
+  ['tx-payee', 'tx-outflow', 'tx-inflow'].forEach(id => document.getElementById(id).value = '');
+  renderYnab(); saveLocal();
+}
+function removeTxn(id) { ynab.txns = ynab.txns.filter(t => t.id !== id); renderYnab(); saveLocal(); }
+function ynabChangeMonth(d) { ynabMonth = addMonth(ynabMonth, d); renderYnab(); }
+function ynabToday() { ynabMonth = new Date().toISOString().slice(0, 7); renderYnab(); }
+
+function seedStarterBudget() {
+  if (ynab.groups.length && !confirm('Add a starter set on top of what you already have?')) return;
+  const starter = {
+    'Monthly Bills': ['Rent / Mortgage', 'Electric', 'Water', 'Internet', 'Phone', 'Insurance'],
+    'Everyday': ['Groceries', 'Gas', 'Dining Out', 'Household'],
+    'Debt Payments': ['Credit Card', 'Student Loan', 'Car Payment'],
+    'Savings Goals': ['Emergency Fund', 'Vacation', 'Car Maintenance'],
+  };
+  for (const [g, cats] of Object.entries(starter)) {
+    const gid = uid(); ynab.groups.push({ id: gid, name: g });
+    cats.forEach(n => ynab.cats.push({ id: uid(), groupId: gid, name: n }));
+  }
+  renderYnab(); saveLocal();
+}
+
+function importPaychecksToBudget() {
+  const acctOptions = ynab.accounts.filter(a => a.onBudget);
+  if (!acctOptions.length) { alert('Add an on-budget account (e.g. Checking) first.'); return; }
+  const acct = acctOptions[0];
+  ynab.txns = ynab.txns.filter(t => t.auto !== 'paycheck:' + ynabMonth); // avoid double-counting
+  let added = 0;
+  ['p1', 'p2'].forEach(p => {
+    const name = gs(p === 'p1' ? 'name1' : 'name2') || 'Paycheck';
+    (paychecks[p] || []).forEach(pc => {
+      const net = calcPaycheckEntry(p, pc).net;
+      if (net > 0) {
+        ynab.txns.push({
+          id: uid(), accountId: acct.id, date: ynabMonth + '-15',
+          payee: name + ' — ' + (pc.label || 'Paycheck'),
+          categoryId: INCOME_CAT, amount: Math.round(net * 100), cleared: true,
+          auto: 'paycheck:' + ynabMonth,
+        });
+        added++;
+      }
+    });
+  });
+  if (!added) { alert('No paychecks logged on the Income tab for this month yet.'); return; }
+  renderYnab(); saveLocal();
+  showToast('✅ Added ' + added + ' paycheck(s) as income to ' + monthLabel(ynabMonth));
+}
+
+// ── render ──
+function fillSelect(sel, items, placeholder, valueKey, labelKey) {
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = (placeholder ? `<option value="">${placeholder}</option>` : '') +
+    items.map(i => `<option value="${i[valueKey]}">${escapeHtml(i[labelKey])}</option>`).join('');
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+}
+
+function renderYnab() {
+  const ml = monthLabel(ynabMonth);
+  setText('ynab-month-label', ml); setText('ynab-budget-month', ml);
+
+  const rta = readyToAssign();
+  const rtaEl = document.getElementById('rta-amount');
+  if (rtaEl) { rtaEl.textContent = fmtCents(rta); rtaEl.className = 'rta-amount ' + (rta > 0 ? 'rta-pos' : rta < 0 ? 'rta-neg' : 'rta-zero'); }
+  const hint = document.getElementById('rta-hint');
+  if (hint) hint.textContent = rta > 0 ? 'You have money to give a job — assign it to categories below.'
+    : rta < 0 ? 'You assigned more than you have. Reduce some assignments.'
+    : 'Every dollar has a job. 🎉';
+
+  fillSelect(document.getElementById('cat-group'), ynab.groups, 'Choose group', 'id', 'name');
+  fillSelect(document.getElementById('tx-account'), ynab.accounts, ynab.accounts.length ? '' : 'No accounts', 'id', 'name');
+  const txCat = document.getElementById('tx-category');
+  if (txCat) {
+    const prev = txCat.value;
+    txCat.innerHTML = `<option value="${INCOME_CAT}">Inflow: Ready to Assign</option>` +
+      ynab.groups.map(g => `<optgroup label="${escapeHtml(g.name)}">` +
+        ynab.cats.filter(c => c.groupId === g.id).map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('') +
+        `</optgroup>`).join('');
+    if ([...txCat.querySelectorAll('option')].some(o => o.value === prev)) txCat.value = prev;
+  }
+  const txDate = document.getElementById('tx-date');
+  if (txDate && !txDate.value) txDate.value = new Date().toISOString().slice(0, 10);
+
+  renderYnabBudget();
+  renderYnabAccounts();
+  renderYnabRegister();
+}
+
+function renderYnabBudget() {
+  const body = document.getElementById('ynab-budget-body');
+  const empty = document.getElementById('ynab-empty');
+  if (!body) return;
+  if (!ynab.cats.length) { body.innerHTML = ''; if (empty) empty.style.display = 'block'; return; }
+  if (empty) empty.style.display = 'none';
+  let html = '';
+  ynab.groups.forEach(g => {
+    const cats = ynab.cats.filter(c => c.groupId === g.id);
+    html += `<tr class="ynab-grouprow"><td>${escapeHtml(g.name)}
+        <button class="link-btn" title="Rename" onclick="renameItem('group','${g.id}')">✎</button>
+        <button class="link-btn" style="color:var(--red)" title="Delete group" onclick="removeGroup('${g.id}')">✕</button>
+      </td><td colspan="4"></td></tr>`;
+    cats.forEach(c => {
+      const assigned = catAssigned(c.id, ynabMonth);
+      const activity = catActivity(c.id, ynabMonth);
+      const avail = catAvailable(c.id, ynabMonth);
+      const ac = avail > 0 ? 'avail-pos' : avail < 0 ? 'avail-neg' : 'avail-zero';
+      html += `<tr>
+        <td>${escapeHtml(c.name)} <button class="link-btn" title="Rename" onclick="renameItem('cat','${c.id}')">✎</button></td>
+        <td><input class="ynab-assign-input" type="number" step="0.01" value="${(assigned / 100).toFixed(2)}" onchange="setAssigned('${c.id}', this.value)" /></td>
+        <td>${fmtCents(activity)}</td>
+        <td class="${ac}">${fmtCents(avail)}</td>
+        <td><button class="link-btn" style="color:var(--red)" title="Delete category" onclick="removeCategory('${c.id}')">✕</button></td>
+      </tr>`;
+    });
+  });
+  body.innerHTML = html;
+}
+
+function renderYnabAccounts() {
+  const list = document.getElementById('ynab-accounts-list');
+  if (!list) return;
+  if (!ynab.accounts.length) { list.innerHTML = '<div class="empty-state" style="padding:12px">No accounts yet.</div>'; return; }
+  list.innerHTML = ynab.accounts.map(a => {
+    const bal = accountBalance(a.id);
+    return `<div class="ynab-acct">
+      <span>${escapeHtml(a.name)} <span class="muted-sm">· ${a.type}</span>
+        <button class="link-btn" title="Rename" onclick="renameItem('acct','${a.id}')">✎</button></span>
+      <span><span class="${bal < 0 ? 'avail-neg' : 'avail-pos'}">${fmtCents(bal)}</span>
+        <button class="link-btn" style="color:var(--red);margin-left:8px" title="Delete" onclick="removeAccount('${a.id}')">✕</button></span>
+    </div>`;
+  }).join('');
+}
+
+function renderYnabRegister() {
+  const body = document.getElementById('reg-body');
+  const empty = document.getElementById('reg-empty');
+  if (!body) return;
+  const txns = [...ynab.txns].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  setText('reg-count', txns.length + ' transaction' + (txns.length === 1 ? '' : 's'));
+  if (!txns.length) { body.innerHTML = ''; if (empty) empty.style.display = 'block'; return; }
+  if (empty) empty.style.display = 'none';
+  body.innerHTML = txns.map(t => {
+    const out = t.amount < 0 ? fmtCents(-t.amount) : '';
+    const inn = t.amount > 0 ? fmtCents(t.amount) : '';
+    return `<tr>
+      <td>${escapeHtml(t.date || '')}</td>
+      <td>${escapeHtml(acctName(t.accountId))}</td>
+      <td>${escapeHtml(t.payee || '')}</td>
+      <td>${escapeHtml(catName(t.categoryId))}</td>
+      <td class="reg-out">${out}</td>
+      <td class="reg-in">${inn}</td>
+      <td><button class="link-btn" style="color:var(--red)" title="Delete" onclick="removeTxn('${t.id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// AUTH (Google Sign-In) + REALTIME SYNC
+// ═══════════════════════════════════════════════
+let appConfig = { googleClientId: '', devLogin: false };
+
+async function checkAuth() {
+  try { appConfig = await (await fetch('/api/config')).json(); }
+  catch (e) { hideGate(); setSyncStatus('offline'); return; } // server unreachable -> local only
+  try {
+    const me = await fetch('/api/me');
+    if (me.ok) { onSignedIn((await me.json()).user); return; }
+  } catch (e) { hideGate(); setSyncStatus('offline'); return; }
+  showLogin();
+}
+
+function showLogin() {
+  document.getElementById('login-gate').classList.remove('hidden');
+  if (appConfig.devLogin) {
+    document.getElementById('dev-login-box').style.display = 'block';
+    document.getElementById('gbtn').style.display = 'none';
+  } else if (appConfig.googleClientId && window.google && google.accounts) {
+    try {
+      google.accounts.id.initialize({ client_id: appConfig.googleClientId, callback: onGoogleCredential });
+      google.accounts.id.renderButton(document.getElementById('gbtn'),
+        { theme: 'filled_blue', size: 'large', shape: 'pill', text: 'signin_with' });
+    } catch (e) { setLoginErr('Could not load Google sign-in.'); }
+  } else {
+    setTimeout(showLogin, 400); // GIS script still loading
+  }
+}
+
+async function onGoogleCredential(resp) { await postAuth({ credential: resp.credential }); }
+async function devSignIn() { await postAuth({ devName: (document.getElementById('dev-name').value || 'Dev').trim() }); }
+async function postAuth(body) {
+  setLoginErr('');
+  try {
+    const r = await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      setLoginErr(e.error === 'not authorized' ? 'That account is not authorized for this budget.' : 'Sign-in failed.');
+      return;
+    }
+    onSignedIn((await r.json()).user);
+  } catch (e) { setLoginErr('Network error during sign-in.'); }
+}
+function setLoginErr(msg) { setText('login-err', msg); }
+function hideGate() { document.getElementById('login-gate').classList.add('hidden'); }
+
+function onSignedIn(user) {
+  currentUser = user;
+  hideGate();
+  const ub = document.getElementById('user-box');
+  if (ub) { ub.style.display = 'inline-flex'; setText('user-name', '👤 ' + (user.name || user.email)); }
+  connectWS();
+}
+async function signOut() {
+  try { await fetch('/api/logout', { method: 'POST' }); } catch (e) {}
+  if (ws) { try { ws.close(); } catch (e) {} }
+  location.reload();
+}
+
+function setSyncStatus(state) {
+  const chip = document.getElementById('sync-chip'); if (!chip) return;
+  chip.className = 'sync-chip ' + state;
+  const map = { connecting: 'Connecting…', online: 'Synced', synced: 'Synced', saving: 'Saving…', offline: 'Offline' };
+  setText('sync-text', map[state] || state);
+}
+function setLastEdit(by, at) {
+  if (!by) return;
+  const when = at ? new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+  setText('sync-text', 'Synced · ' + by + (when ? ' · ' + when : ''));
+}
+
+function connectWS() {
+  setSyncStatus('connecting');
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  try { ws = new WebSocket(proto + '://' + location.host + '/ws'); }
+  catch (e) { setSyncStatus('offline'); scheduleReconnect(); return; }
+  ws.onopen = () => setSyncStatus('online');
+  ws.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } handleSyncMessage(m); };
+  ws.onclose = () => { setSyncStatus('offline'); scheduleReconnect(); };
+  ws.onerror = () => {};
+}
+function scheduleReconnect() {
+  clearTimeout(reconnectTimer);
+  reconnectTimer = setTimeout(() => { if (currentUser) connectWS(); }, 3000);
+}
+
+function handleSyncMessage(m) {
+  if (m.type === 'state') {
+    if (dirtyOffline) {
+      const merged = mergeState(collectExportData(), m.data || {});
+      knownVersion = m.version; applyRemote(merged); dirtyOffline = false; pushNow(merged);
+    } else {
+      knownVersion = m.version;
+      if (m.data && Object.keys(m.data).length) applyRemote(m.data);
+      setLastEdit(m.updatedBy, m.updatedAt);
+    }
+  } else if (m.type === 'ack') {
+    knownVersion = m.version; setSyncStatus('synced');
+  } else if (m.type === 'conflict') {
+    const merged = mergeState(collectExportData(), m.data || {});
+    knownVersion = m.version; applyRemote(merged); pushNow(merged);
+  } else if (m.type === 'error') {
+    setSyncStatus('offline');
+  }
+}
+
+function applyRemote(data) {
+  const ae = document.activeElement;
+  if (ae && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) { pendingRemoteData = data; return; }
+  applyingRemote = true;
+  try { applyImportedData(data); } finally { applyingRemote = false; }
+}
+document.addEventListener('focusout', () => {
+  setTimeout(() => {
+    const ae = document.activeElement;
+    const editing = ae && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName);
+    if (pendingRemoteData && !editing) { const d = pendingRemoteData; pendingRemoteData = null; applyRemote(d); }
+  }, 80);
+});
+
+function schedulePush() {
+  if (applyingRemote || !currentUser) return; // don't echo remote applies or push before sign-in
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => pushNow(), 600);
+}
+function pushNow(dataOpt) {
+  const data = dataOpt || collectExportData();
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'update', data, baseVersion: knownVersion }));
+    setSyncStatus('saving');
+  } else {
+    dirtyOffline = true; setSyncStatus('offline');
+  }
+}
+
+// Merge local + remote so neither spouse's edit is lost on a conflict / reconnect.
+function mergeState(local, remote) {
+  const out = Object.assign({}, remote, local); // top-level scalars: local (just edited) wins
+  out.fields = Object.assign({}, remote.fields || {}, local.fields || {});
+  const mergeById = (a, b) => {
+    const map = new Map();
+    [...(a || []), ...(b || [])].forEach(x => { if (x) map.set(x.id != null ? x.id : Symbol(), x); });
+    return [...map.values()];
+  };
+  out.debts = mergeById(remote.debts, local.debts);
+  out.budgetCats = mergeById(remote.budgetCats, local.budgetCats);
+  out.goals = mergeById(remote.goals, local.goals);
+  out.assets = mergeById(remote.assets, local.assets);
+  out.extraLiabilities = mergeById(remote.extraLiabilities, local.extraLiabilities);
+  out.paychecks = {
+    p1: mergeById((remote.paychecks || {}).p1, (local.paychecks || {}).p1),
+    p2: mergeById((remote.paychecks || {}).p2, (local.paychecks || {}).p2),
+  };
+  const ry = remote.ynab || {}, ly = local.ynab || {};
+  out.ynab = {
+    accounts: mergeById(ry.accounts, ly.accounts),
+    groups: mergeById(ry.groups, ly.groups),
+    cats: mergeById(ry.cats, ly.cats),
+    txns: mergeById(ry.txns, ly.txns),
+    budgeted: Object.assign({}, ry.budgeted || {}, ly.budgeted || {}),
+  };
+  return out;
+}
+
+// ═══════════════════════════════════════════════
 // INIT — URL hash takes priority over localStorage
 // ═══════════════════════════════════════════════
 if (!loadFromURLHash()) {
   loadLocal();
   recalc();
 }
+renderYnab();
+checkAuth();
 </script>
 </body>
 </html>
