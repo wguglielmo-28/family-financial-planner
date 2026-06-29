@@ -271,6 +271,11 @@
     .link-btn { background:none; border:none; color:var(--accent); cursor:pointer; font-size:inherit; padding:0; }
     .muted-sm { font-size:0.75rem; color:var(--muted); }
 
+    /* ── Share / account modal ── */
+    .modal-overlay { position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto; }
+    .modal-card h3 { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
     /* ════════════ RESPONSIVE: tablet + phone ════════════ */
     @media (max-width: 820px) {
       .tab-content { padding: 20px 16px; }
@@ -316,7 +321,7 @@
   <div class="login-card">
     <div class="logo">💰</div>
     <h2>Family YNAB</h2>
-    <p>Sign in to open your shared household budget.</p>
+    <p id="login-sub">Sign in to open your budget.</p>
     <div id="gbtn"></div>
     <div id="dev-login-box" style="display:none">
       <div class="dev-login">
@@ -325,7 +330,44 @@
       </div>
       <p class="muted-sm" style="margin-top:10px">Dev mode — Google sign-in not configured.</p>
     </div>
+    <div id="invite-box" style="display:none;margin-top:16px">
+      <div class="field" style="text-align:left">
+        <label>Invite code</label>
+        <input type="text" id="invite-code" placeholder="Paste your invite code" />
+      </div>
+    </div>
     <div id="login-err" class="login-err"></div>
+  </div>
+</div>
+
+<!-- ════════════ INVITE / SHARE MODAL ════════════ -->
+<div id="share-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeShareModal()">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3 style="font-size:1.1rem">Your Budget &amp; Sharing</h3>
+      <button class="link-btn" style="font-size:1.3rem" onclick="closeShareModal()">✕</button>
+    </div>
+    <div class="field" style="margin-bottom:16px">
+      <label>Household name</label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="hh-name" placeholder="My Household" />
+        <button class="btn btn-ghost btn-sm" onclick="saveHouseholdName()">Save</button>
+      </div>
+    </div>
+    <p class="muted-sm" style="margin-bottom:10px">Invite someone to share <strong>this</strong> budget (e.g. your partner). They'll see and edit the same data, live.</p>
+    <button class="btn btn-primary" onclick="createInvite('join')">🔗 Create partner invite link</button>
+    <div id="admin-invite" style="display:none;margin-top:18px;border-top:1px solid var(--border);padding-top:16px">
+      <p class="muted-sm" style="margin-bottom:10px"><strong>Admin:</strong> invite a new family — gives them their own separate, empty budget.</p>
+      <button class="btn btn-ghost" onclick="createInvite('new')">➕ Create new-family invite link</button>
+    </div>
+    <div id="invite-result" style="display:none;margin-top:18px">
+      <label style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em">Share this link</label>
+      <div style="display:flex;gap:8px;margin-top:5px">
+        <input type="text" id="invite-link" readonly style="font-size:0.78rem" onclick="this.select()" />
+        <button class="btn btn-primary btn-sm" onclick="copyInviteLink()">Copy</button>
+      </div>
+      <p class="muted-sm" id="invite-note" style="margin-top:8px"></p>
+    </div>
   </div>
 </div>
 
@@ -341,6 +383,8 @@
     <button class="btn btn-ghost btn-sm" onclick="importData()">📂 Import</button>
     <input type="file" id="import-file" accept=".json" style="display:none" onchange="loadImport(event)" />
     <span id="user-box" style="display:none;align-items:center;gap:8px;">
+      <span id="household-name" class="muted-sm" style="font-weight:600;color:var(--text)"></span>
+      <button class="btn btn-ghost btn-sm" onclick="openShareModal()">👥 Invite</button>
       <span id="user-name" class="muted-sm"></span>
       <button class="btn btn-ghost btn-sm" onclick="signOut()">Sign out</button>
     </span>
@@ -915,6 +959,7 @@ const INCOME_CAT = '_income'; // special "Inflow: Ready to Assign" category
 // ── Realtime sync state ──
 let ws = null, knownVersion = 0, currentUser = null, applyingRemote = false;
 let pushTimer = null, dirtyOffline = false, pendingRemoteData = null, reconnectTimer = null;
+let hasLoadedOnce = false; // becomes true after the first authoritative server state
 
 // ═══════════════════════════════════════════════
 // HELPERS
@@ -2298,19 +2343,26 @@ function renderYnabRegister() {
 // AUTH (Google Sign-In) + REALTIME SYNC
 // ═══════════════════════════════════════════════
 let appConfig = { googleClientId: '', devLogin: false };
+let currentHousehold = { name: '', isAdmin: false };
+let pendingInvite = (new URLSearchParams(location.search)).get('invite') || '';
+function currentInviteCode() {
+  const f = document.getElementById('invite-code');
+  return ((f && f.value.trim()) || pendingInvite || '');
+}
 
 async function checkAuth() {
   try { appConfig = await (await fetch('/api/config')).json(); }
   catch (e) { hideGate(); setSyncStatus('offline'); return; } // server unreachable -> local only
   try {
     const me = await fetch('/api/me');
-    if (me.ok) { onSignedIn((await me.json()).user); return; }
+    if (me.ok) { const j = await me.json(); onSignedIn(j.user, j.household); return; }
   } catch (e) { hideGate(); setSyncStatus('offline'); return; }
   showLogin();
 }
 
 function showLogin() {
   document.getElementById('login-gate').classList.remove('hidden');
+  if (pendingInvite) setText('login-sub', "You've been invited 🎉  Sign in to accept and set up your budget.");
   if (appConfig.devLogin) {
     document.getElementById('dev-login-box').style.display = 'block';
     document.getElementById('gbtn').style.display = 'none';
@@ -2329,11 +2381,20 @@ async function onGoogleCredential(resp) { await postAuth({ credential: resp.cred
 async function devSignIn() { await postAuth({ devName: (document.getElementById('dev-name').value || 'Dev').trim() }); }
 async function postAuth(body) {
   setLoginErr('');
+  body.invite = currentInviteCode();
   try {
     const r = await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (!r.ok) {
       const e = await r.json().catch(() => ({}));
-      setLoginErr(e.error === 'not authorized' ? 'That account is not authorized for this budget.' : 'Sign-in failed.');
+      if (e.error === 'invite_required') {
+        document.getElementById('invite-box').style.display = 'block';
+        setLoginErr('You need an invite to create an account. Paste your invite code above, then sign in again.');
+      } else if (e.error === 'invalid_invite') {
+        document.getElementById('invite-box').style.display = 'block';
+        setLoginErr('That invite is invalid or expired — ask whoever invited you for a fresh link.');
+      } else {
+        setLoginErr('Sign-in failed. Please try again.');
+      }
       return;
     }
     onSignedIn((await r.json()).user);
@@ -2342,17 +2403,59 @@ async function postAuth(body) {
 function setLoginErr(msg) { setText('login-err', msg); }
 function hideGate() { document.getElementById('login-gate').classList.add('hidden'); }
 
-function onSignedIn(user) {
+async function onSignedIn(user, household) {
   currentUser = user;
   hideGate();
+  if (!household) { try { household = await (await fetch('/api/household')).json(); } catch (e) {} }
+  currentHousehold = household || { name: '', isAdmin: false };
   const ub = document.getElementById('user-box');
-  if (ub) { ub.style.display = 'inline-flex'; setText('user-name', '👤 ' + (user.name || user.email)); }
+  if (ub) {
+    ub.style.display = 'inline-flex';
+    setText('user-name', '👤 ' + (user.name || user.email));
+    setText('household-name', currentHousehold.name || '');
+  }
+  if (pendingInvite) { pendingInvite = ''; history.replaceState(null, '', location.pathname); }
   connectWS();
 }
 async function signOut() {
   try { await fetch('/api/logout', { method: 'POST' }); } catch (e) {}
+  try { localStorage.removeItem('ffp-v2'); } catch (e) {} // don't leave data for the next user on a shared device
   if (ws) { try { ws.close(); } catch (e) {} }
-  location.reload();
+  location.href = location.pathname; // drop any ?invite= and reload
+}
+
+// ── Invite / share menu ──
+function openShareModal() {
+  document.getElementById('hh-name').value = currentHousehold.name || '';
+  document.getElementById('admin-invite').style.display = currentHousehold.isAdmin ? 'block' : 'none';
+  document.getElementById('invite-result').style.display = 'none';
+  document.getElementById('share-modal').style.display = 'flex';
+}
+function closeShareModal() { document.getElementById('share-modal').style.display = 'none'; }
+async function createInvite(kind) {
+  try {
+    const r = await fetch('/api/invites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind }) });
+    if (!r.ok) { showToast('Could not create invite.'); return; }
+    const inv = await r.json();
+    document.getElementById('invite-link').value = inv.url;
+    setText('invite-note', kind === 'new'
+      ? 'Send this to a new family. It works once and gives them their own separate, empty budget.'
+      : 'Send this to your partner. They sign in with Google and join THIS budget. Expires in 30 days.');
+    document.getElementById('invite-result').style.display = 'block';
+  } catch (e) { showToast('Network error creating invite.'); }
+}
+function copyInviteLink() {
+  const el = document.getElementById('invite-link');
+  el.select();
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(el.value).then(() => showToast('🔗 Invite link copied!'));
+  else { document.execCommand('copy'); showToast('🔗 Invite link copied!'); }
+}
+async function saveHouseholdName() {
+  const name = document.getElementById('hh-name').value.trim();
+  try {
+    const r = await fetch('/api/household/rename', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+    if (r.ok) { currentHousehold.name = name; setText('household-name', name); showToast('✅ Saved'); }
+  } catch (e) {}
 }
 
 function setSyncStatus(state) {
@@ -2384,7 +2487,15 @@ function scheduleReconnect() {
 
 function handleSyncMessage(m) {
   if (m.type === 'state') {
-    if (dirtyOffline) {
+    if (!hasLoadedOnce) {
+      // First authoritative load for this household: the server is the source of
+      // truth. Fully REPLACE local state (clearing anything seeded from a previous
+      // user's localStorage on a shared browser) so no data can bleed across accounts.
+      hasLoadedOnce = true;
+      knownVersion = m.version;
+      fullReplaceState(m.data || {});
+      setLastEdit(m.updatedBy, m.updatedAt);
+    } else if (dirtyOffline) {
       const merged = mergeState(collectExportData(), m.data || {});
       knownVersion = m.version; applyRemote(merged); dirtyOffline = false; pushNow(merged);
     } else {
@@ -2407,6 +2518,21 @@ function applyRemote(data) {
   if (ae && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) { pendingRemoteData = data; return; }
   applyingRemote = true;
   try { applyImportedData(data); } finally { applyingRemote = false; }
+}
+
+// Authoritative full replace: reset ALL local state to defaults, then apply the
+// server's document. Clears any stale data seeded from a prior user's localStorage.
+function fullReplaceState(data) {
+  applyingRemote = true;
+  try {
+    debts = []; budgetCats = []; goals = []; assets = []; extraLiabilities = [];
+    paychecks = { p1: [], p2: [] };
+    ynab = { accounts: [], groups: [], cats: [], txns: [], budgeted: {} };
+    document.querySelectorAll('#tab-income input, #tab-income select').forEach(el => {
+      if (el.type !== 'button' && !el.readOnly) el.value = '';
+    });
+    applyImportedData(data || {});
+  } finally { applyingRemote = false; }
 }
 document.addEventListener('focusout', () => {
   setTimeout(() => {
