@@ -11,6 +11,7 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.107.0",
     "cookie": "^0.6.0",
     "express": "^4.19.2",
     "google-auth-library": "^9.11.0",

@@ -36,6 +36,8 @@ const splitEmails = v => (v || '').split(',').map(e => e.trim().toLowerCase()).f
 const ALLOWED_EMAILS = splitEmails(process.env.ALLOWED_EMAILS); // legacy-migration seed only
 const ADMIN_EMAILS = splitEmails(process.env.ADMIN_EMAILS);
 const DEV_LOGIN = !GOOGLE_CLIENT_ID && !IS_PROD && !process.env.DATABASE_URL;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const EXTRACT_MODEL = process.env.EXTRACT_MODEL || 'claude-opus-4-8';
 
 const COOKIE_NAME = 'fy_session';
 const INVITE_TTL_DAYS = 30;
@@ -246,7 +248,7 @@ function sessionFrom(reqOrHeader) {
  * ========================================================================= */
 const app = express();
 app.set('trust proxy', 1);
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '15mb' })); // paystub images can be a few MB (base64)
 
 // Resolve the authenticated user (with household) for an API request, or null.
 async function authedUser(req) {
@@ -336,6 +338,62 @@ app.get('/api/admin/overview', async (req, res) => {
   const out = [];
   for (const h of households) out.push({ name: h.name, members: (await store.listMembers(h.id)).length });
   res.json({ households: out });
+});
+
+// ── Paystub extraction (Claude vision → structured fields) ──
+const PAYSTUB_SCHEMA = {
+  type: 'object', additionalProperties: false,
+  properties: {
+    payDate:        { type: ['string', 'null'], description: 'Pay/check date as YYYY-MM-DD' },
+    grossPay:       { type: ['number', 'null'], description: 'Gross pay this check, dollars' },
+    netPay:         { type: ['number', 'null'], description: 'Net/take-home this check, dollars' },
+    regHours:       { type: ['number', 'null'], description: 'Regular hours' },
+    otHours:        { type: ['number', 'null'], description: 'Overtime hours' },
+    callHours:      { type: ['number', 'null'], description: 'On-call hours' },
+    callbackHours:  { type: ['number', 'null'], description: 'Callback hours' },
+    incentiveHours: { type: ['number', 'null'], description: 'Incentive/bonus hours' },
+    bonus:          { type: ['number', 'null'], description: 'Bonus amount, dollars' },
+    taxes:          { type: ['number', 'null'], description: 'Total taxes withheld, dollars' },
+    retirement:     { type: ['number', 'null'], description: '401k/retirement contribution, dollars' },
+    employer:       { type: ['string', 'null'], description: 'Employer name' },
+  },
+  required: ['payDate', 'grossPay', 'netPay', 'regHours', 'otHours', 'callHours',
+    'callbackHours', 'incentiveHours', 'bonus', 'taxes', 'retirement', 'employer'],
+};
+
+app.post('/api/extract-paystub', async (req, res) => {
+  const u = await authedUser(req);
+  if (!u) return res.status(401).json({ error: 'unauthenticated' });
+  if (!ANTHROPIC_API_KEY) return res.status(503).json({ error: 'extract_unconfigured' });
+  const { data, mediaType, kind } = req.body || {};
+  if (!data || !mediaType) return res.status(400).json({ error: 'missing_file' });
+  try {
+    const Mod = require('@anthropic-ai/sdk');
+    const Anthropic = Mod.default || Mod;
+    const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const docBlock = kind === 'pdf'
+      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } }
+      : { type: 'image', source: { type: 'base64', media_type: mediaType, data } };
+    const msg = await client.messages.create({
+      model: EXTRACT_MODEL,
+      max_tokens: 1024,
+      output_config: { format: { type: 'json_schema', schema: PAYSTUB_SCHEMA } },
+      messages: [{ role: 'user', content: [
+        docBlock,
+        { type: 'text', text: 'This is a pay stub. Extract the fields into the required JSON. Money as plain numbers in dollars (no symbols); payDate as YYYY-MM-DD (the pay/check date). On healthcare paychecks, "Call"/"On-Call" and "Callback" are separate pay lines — keep them distinct. If a field is absent, use null.' },
+      ] }],
+    });
+    if (msg.stop_reason === 'refusal') return res.status(422).json({ error: 'refused' });
+    const textBlock = (msg.content || []).find(b => b.type === 'text');
+    let fields = null;
+    try { fields = JSON.parse(textBlock.text); }
+    catch { const m = textBlock && textBlock.text.match(/\{[\s\S]*\}/); if (m) fields = JSON.parse(m[0]); }
+    if (!fields) return res.status(502).json({ error: 'parse_failed' });
+    res.json({ fields });
+  } catch (e) {
+    console.error('[extract] error', e.message);
+    res.status(502).json({ error: 'extract_failed', detail: e.message });
+  }
 });
 
 app.use(express.static(path.join(__dirname, 'public')));

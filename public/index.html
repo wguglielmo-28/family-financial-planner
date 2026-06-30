@@ -544,6 +544,68 @@
       </div>
     </div>
   </div>
+
+  <!-- ── Paycheck history & averages ── -->
+  <div class="card">
+    <div class="card-title">📈 Paycheck History &amp; Averages</div>
+    <p class="muted-sm" style="margin-bottom:12px">Upload paystubs (photo or PDF) and the app averages your variable Call/Callback/OT pay over time — then can build a starter budget &amp; payoff plan from it.</p>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+      <span class="muted-sm">Average over:</span>
+      <select id="avg-window" onchange="renderPayHistory()">
+        <option value="3">Last 3 months</option>
+        <option value="6" selected>Last 6 months</option>
+        <option value="12">Last 12 months</option>
+        <option value="0">All time</option>
+      </select>
+      <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="buildStarterPlan()">🪄 Build my starter plan</button>
+    </div>
+    <div id="avg-summary"></div>
+    <div class="two-col" style="margin-top:14px">
+      <div>
+        <div class="section-label" style="border-top:none;margin-top:0;padding-top:0" id="ph-name1-label">Partner 1</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ph-file-p1').click()">📷 Upload paystub</button>
+          <button class="btn btn-ghost btn-sm" onclick="addManualPaycheck('p1')">+ Add past paycheck</button>
+          <input type="file" id="ph-file-p1" accept="image/*,application/pdf" style="display:none" onchange="onPaystubFile('p1', event)" />
+        </div>
+        <div id="ph-list-p1"></div>
+      </div>
+      <div>
+        <div class="section-label" style="border-top:none;margin-top:0;padding-top:0" id="ph-name2-label">Partner 2</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ph-file-p2').click()">📷 Upload paystub</button>
+          <button class="btn btn-ghost btn-sm" onclick="addManualPaycheck('p2')">+ Add past paycheck</button>
+          <input type="file" id="ph-file-p2" accept="image/*,application/pdf" style="display:none" onchange="onPaystubFile('p2', event)" />
+        </div>
+        <div id="ph-list-p2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ PAYSTUB CONFIRM MODAL ════════════ -->
+<div id="paystub-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closePaystubModal()">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3 style="font-size:1.1rem" id="paystub-modal-title">Confirm Paycheck</h3>
+      <button class="link-btn" style="font-size:1.3rem" onclick="closePaystubModal()">✕</button>
+    </div>
+    <p class="muted-sm" id="paystub-modal-note" style="margin-bottom:14px"></p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>Pay date</label><input type="date" id="ps-date" /></div>
+      <div class="field"><label>Net (take-home)</label><div class="prefix-input"><span>$</span><input type="number" id="ps-net" step="0.01" placeholder="0.00" /></div></div>
+      <div class="field"><label>Gross</label><div class="prefix-input"><span>$</span><input type="number" id="ps-gross" step="0.01" placeholder="0.00" /></div></div>
+      <div class="field"><label>Bonus</label><div class="prefix-input"><span>$</span><input type="number" id="ps-bonus" step="0.01" placeholder="0.00" /></div></div>
+      <div class="field"><label>Reg hours</label><input type="number" id="ps-reg" step="0.5" placeholder="0" /></div>
+      <div class="field"><label>OT hours</label><input type="number" id="ps-ot" step="0.5" placeholder="0" /></div>
+      <div class="field"><label>Call hours</label><input type="number" id="ps-call" step="0.5" placeholder="0" /></div>
+      <div class="field"><label>Callback hours</label><input type="number" id="ps-callback" step="0.5" placeholder="0" /></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closePaystubModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePaystub()">Save paycheck</button>
+    </div>
+  </div>
 </div>
 
 <!-- ════════════════════════════════════════════════════
@@ -955,6 +1017,9 @@ let urlUpdateTimer = null;
 let ynab = { accounts: [], groups: [], cats: [], txns: [], budgeted: {} };
 let ynabMonth = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
 const INCOME_CAT = '_income'; // special "Inflow: Ready to Assign" category
+// Dated pay history (for averaging variable income over time)
+let payHistory = { p1: [], p2: [] };
+let paystubPerson = 'p1';
 
 // ── Realtime sync state ──
 let ws = null, knownVersion = 0, currentUser = null, applyingRemote = false;
@@ -1246,7 +1311,7 @@ function collectExportData() {
     'p2-bonus','p2-retirement','p2-health','p2-dental','p2-otherPretax','p2-tax','p2-fica'];
   const fields = {};
   fieldIds.forEach(id => { const el = document.getElementById(id); if (el) fields[id] = el.value; });
-  return { fields, paychecks, debts, budgetCats, goals, assets, extraLiabilities, ynab };
+  return { fields, paychecks, debts, budgetCats, goals, assets, extraLiabilities, ynab, payHistory };
 }
 
 function applyImportedData(data) {
@@ -1262,6 +1327,7 @@ function applyImportedData(data) {
   if (data.assets) assets = data.assets;
   if (data.extraLiabilities) extraLiabilities = data.extraLiabilities;
   if (data.ynab) ynab = Object.assign({ accounts: [], groups: [], cats: [], txns: [], budgeted: {} }, data.ynab);
+  if (data.payHistory) payHistory = Object.assign({ p1: [], p2: [] }, data.payHistory);
   updateNames();
   renderPaychecks('p1');
   renderPaychecks('p2');
@@ -1269,6 +1335,7 @@ function applyImportedData(data) {
   renderDebts();
   renderCalendar();
   renderYnab();
+  renderPayHistory();
 }
 
 function scheduleURLUpdate() {
@@ -2340,6 +2407,182 @@ function renderYnabRegister() {
 }
 
 // ═══════════════════════════════════════════════
+// PAYCHECK HISTORY · AVERAGING · STARTER PLAN
+// ═══════════════════════════════════════════════
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
+  });
+}
+async function onPaystubFile(p, ev) {
+  const file = ev.target.files && ev.target.files[0];
+  ev.target.value = '';
+  if (!file) return;
+  const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+  if (file.size > 14 * 1024 * 1024) { alert('That file is too large (max ~14MB). A phone photo is usually fine.'); return; }
+  showToast('🔎 Reading paystub…');
+  try {
+    const data = await fileToBase64(file);
+    const r = await fetch('/api/extract-paystub', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data, mediaType: isPdf ? 'application/pdf' : file.type, kind: isPdf ? 'pdf' : 'image' }),
+    });
+    if (r.status === 503) { alert('Paystub photo-reading isn\'t set up yet. Ask William to add an ANTHROPIC_API_KEY in Railway. Meanwhile, use "+ Add past paycheck" to type one in.'); return; }
+    if (!r.ok) { alert('Couldn\'t read that paystub automatically. Use "+ Add past paycheck" to enter it by hand.'); return; }
+    const { fields } = await r.json();
+    openPaystubModal(p, fields, '🤖 Read from your paystub — double-check the numbers, then save.');
+  } catch (e) { alert('Network error reading the paystub. Try again, or add it by hand.'); }
+}
+function addManualPaycheck(p) { openPaystubModal(p, null, 'Enter a past paycheck. Net (take-home) is the number that matters most for averaging.'); }
+
+function openPaystubModal(p, f, note) {
+  paystubPerson = p;
+  f = f || {};
+  const sv = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v == null ? '' : v); };
+  sv('ps-date', f.payDate || new Date().toISOString().slice(0, 10));
+  sv('ps-net', f.netPay); sv('ps-gross', f.grossPay); sv('ps-bonus', f.bonus);
+  sv('ps-reg', f.regHours); sv('ps-ot', f.otHours); sv('ps-call', f.callHours); sv('ps-callback', f.callbackHours);
+  setText('paystub-modal-title', 'Confirm Paycheck · ' + (gs(p === 'p1' ? 'name1' : 'name2') || (p === 'p1' ? 'Partner 1' : 'Partner 2')));
+  setText('paystub-modal-note', note || '');
+  document.getElementById('paystub-modal').dataset.source = (f.payDate || f.netPay != null) ? 'upload' : 'manual';
+  document.getElementById('paystub-modal').style.display = 'flex';
+}
+function closePaystubModal() { document.getElementById('paystub-modal').style.display = 'none'; }
+function savePaystub() {
+  const p = paystubPerson, date = gs('ps-date');
+  if (!date) { alert('Enter a pay date.'); return; }
+  const entry = {
+    id: uid(), date,
+    net: gv('ps-net'), gross: gv('ps-gross'), bonus: gv('ps-bonus'),
+    reg: gv('ps-reg'), ot: gv('ps-ot'), call: gv('ps-call'), callback: gv('ps-callback'),
+    incentive: 0, taxes: 0,
+    source: document.getElementById('paystub-modal').dataset.source || 'manual',
+  };
+  if (entry.net <= 0 && entry.gross <= 0) { alert('Enter at least a net or gross amount.'); return; }
+  if (!payHistory[p]) payHistory[p] = [];
+  payHistory[p].push(entry);
+  closePaystubModal();
+  renderPayHistory();
+  saveLocal();
+  showToast('✅ Paycheck saved to history');
+}
+function removePayHistory(p, id) {
+  payHistory[p] = (payHistory[p] || []).filter(e => e.id !== id);
+  renderPayHistory(); saveLocal();
+}
+
+// ── averaging ──
+function phMonthlyNet(p) {
+  const map = {};
+  (payHistory[p] || []).forEach(e => { const ym = (e.date || '').slice(0, 7); if (ym) map[ym] = (map[ym] || 0) + (e.net || 0); });
+  return map;
+}
+function phWindowMonths(p, win) {
+  const months = Object.keys(phMonthlyNet(p)).sort();
+  return win > 0 ? months.slice(-win) : months;
+}
+function phAvgNet(p, win) {
+  const m = phMonthlyNet(p), months = phWindowMonths(p, win);
+  if (!months.length) return 0;
+  return months.reduce((s, ym) => s + m[ym], 0) / months.length;
+}
+function phSpread(p, win) {
+  const m = phMonthlyNet(p), vals = phWindowMonths(p, win).map(ym => m[ym]);
+  return vals.length ? { min: Math.min(...vals), max: Math.max(...vals) } : { min: 0, max: 0 };
+}
+function phWin() { return parseInt(gs('avg-window')); }
+
+function renderPayHistory() {
+  setText('ph-name1-label', gs('name1') || 'Partner 1');
+  setText('ph-name2-label', gs('name2') || 'Partner 2');
+  const win = isNaN(phWin()) ? 6 : phWin();
+  ['p1', 'p2'].forEach(p => {
+    const el = document.getElementById('ph-list-' + p); if (!el) return;
+    const list = [...(payHistory[p] || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    if (!list.length) { el.innerHTML = '<div class="pc-empty">No paychecks yet — upload one or add it by hand.</div>'; return; }
+    el.innerHTML = '<div class="pc-table-wrap"><table class="pc-table"><thead><tr>' +
+      '<th style="text-align:left;padding-left:8px">Date</th><th>Net</th><th>Gross</th><th></th></tr></thead><tbody>' +
+      list.map(e => `<tr>
+        <td style="padding-left:8px;white-space:nowrap">${escapeHtml(e.date || '')}${e.source === 'upload' ? ' 📷' : ''}</td>
+        <td class="td-net">${fmt(e.net || 0)}</td>
+        <td class="td-money">${fmt(e.gross || 0)}</td>
+        <td class="td-del"><button class="btn btn-danger" style="padding:3px 6px;font-size:0.72rem" onclick="removePayHistory('${p}','${e.id}')">×</button></td>
+      </tr>`).join('') + '</tbody></table></div>';
+  });
+  const a1 = phAvgNet('p1', win), a2 = phAvgNet('p2', win), combined = a1 + a2;
+  const sum = document.getElementById('avg-summary'); if (!sum) return;
+  if (!(payHistory.p1 || []).length && !(payHistory.p2 || []).length) {
+    sum.innerHTML = '<div class="empty-state" style="padding:14px">Add a few paychecks to see your average monthly income.</div>';
+    return;
+  }
+  const sp1 = phSpread('p1', win), sp2 = phSpread('p2', win);
+  const personLine = (name, avg, sp, cnt) => cnt
+    ? `<div class="paycheck-row"><span>${escapeHtml(name)} — avg / mo</span><span><strong style="color:var(--green)">${fmt(avg)}</strong> <span class="muted-sm">(${fmt(sp.min)}–${fmt(sp.max)})</span></span></div>`
+    : '';
+  sum.innerHTML = `
+    <div class="paycheck-section">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+        <span class="muted-sm" style="text-transform:uppercase;letter-spacing:0.05em">Average Combined Net / Month</span>
+        <span style="font-size:1.6rem;font-weight:800;color:var(--green)">${fmt(combined)}</span>
+      </div>
+      <div style="margin-top:8px">
+        ${personLine(gs('name1') || 'Partner 1', a1, sp1, phWindowMonths('p1', win).length)}
+        ${personLine(gs('name2') || 'Partner 2', a2, sp2, phWindowMonths('p2', win).length)}
+      </div>
+      <p class="muted-sm" style="margin-top:8px">Based on ${win > 0 ? 'the last ' + win + ' months' : 'all'} of logged paychecks. The range shows how much your monthly take-home swings.</p>
+    </div>`;
+}
+
+function buildStarterPlan() {
+  const win = isNaN(phWin()) ? 6 : phWin();
+  const avg = phAvgNet('p1', win) + phAvgNet('p2', win);
+  if (avg <= 0) { alert('Add or upload at least one paycheck first — then I can build a plan from your average income.'); return; }
+  if (!confirm('Build a starter budget + payoff plan from your average monthly net of ' + fmt(avg) + '?\n\nThis fills in the YNAB Budget and Payoff tabs. You can edit everything afterward.')) return;
+
+  const cents = d => Math.round((d || 0) * 100);
+  if (!ynab.accounts.length) ynab.accounts.push({ id: uid(), name: 'Checking', type: 'checking', onBudget: true, closed: false });
+  const acct = ynab.accounts.find(a => a.onBudget) || ynab.accounts[0];
+
+  let debtGroup = ynab.groups.find(g => /debt/i.test(g.name));
+  if (!debtGroup) { debtGroup = { id: uid(), name: 'Debt Payments' }; ynab.groups.push(debtGroup); }
+  let livingGroup = ynab.groups.find(g => /living|starter|essentials/i.test(g.name));
+  if (!livingGroup) { livingGroup = { id: uid(), name: 'Living & Savings' }; ynab.groups.push(livingGroup); }
+  const ensureCat = (groupId, name) => {
+    let c = ynab.cats.find(x => x.groupId === groupId && x.name === name);
+    if (!c) { c = { id: uid(), groupId, name }; ynab.cats.push(c); }
+    return c;
+  };
+
+  ynab.budgeted[ynabMonth] = {};
+  ynab.txns = ynab.txns.filter(t => t.auto !== 'autoplan:' + ynabMonth);
+  ynab.txns.push({ id: uid(), accountId: acct.id, date: ynabMonth + '-01', payee: 'Average monthly income', categoryId: INCOME_CAT, amount: cents(avg), cleared: true, auto: 'autoplan:' + ynabMonth });
+
+  let debtMin = 0;
+  (debts || []).filter(d => !d.paidOff && (d.payment || 0) > 0).forEach(d => {
+    ynab.budgeted[ynabMonth][ensureCat(debtGroup.id, d.name).id] = cents(d.payment);
+    debtMin += (d.payment || 0);
+  });
+
+  const remainder = Math.max(0, avg - debtMin);
+  const essentials = remainder * 0.60, lifestyle = remainder * 0.25, savings = remainder - essentials - lifestyle;
+  ynab.budgeted[ynabMonth][ensureCat(livingGroup.id, 'Essentials (housing, food, bills)').id] = cents(essentials);
+  ynab.budgeted[ynabMonth][ensureCat(livingGroup.id, 'Lifestyle (fun, dining, extras)').id] = cents(lifestyle);
+  ynab.budgeted[ynabMonth][ensureCat(livingGroup.id, 'Savings & Extra Debt Payoff').id] = cents(savings);
+
+  const extraEl = document.getElementById('extra-payment');
+  if (extraEl) extraEl.value = Math.round(savings);
+  if (typeof recalcPayoff === 'function') recalcPayoff();
+
+  renderYnab();
+  recalc();
+  saveLocal();
+  showToast('🪄 Starter plan built — open the YNAB Budget & Payoff tabs to fine-tune it.');
+}
+
+// ═══════════════════════════════════════════════
 // AUTH (Google Sign-In) + REALTIME SYNC
 // ═══════════════════════════════════════════════
 let appConfig = { googleClientId: '', devLogin: false };
@@ -2527,6 +2770,7 @@ function fullReplaceState(data) {
   try {
     debts = []; budgetCats = []; goals = []; assets = []; extraLiabilities = [];
     paychecks = { p1: [], p2: [] };
+    payHistory = { p1: [], p2: [] };
     ynab = { accounts: [], groups: [], cats: [], txns: [], budgeted: {} };
     document.querySelectorAll('#tab-income input, #tab-income select').forEach(el => {
       if (el.type !== 'button' && !el.readOnly) el.value = '';
@@ -2575,6 +2819,10 @@ function mergeState(local, remote) {
     p1: mergeById((remote.paychecks || {}).p1, (local.paychecks || {}).p1),
     p2: mergeById((remote.paychecks || {}).p2, (local.paychecks || {}).p2),
   };
+  out.payHistory = {
+    p1: mergeById((remote.payHistory || {}).p1, (local.payHistory || {}).p1),
+    p2: mergeById((remote.payHistory || {}).p2, (local.payHistory || {}).p2),
+  };
   const ry = remote.ynab || {}, ly = local.ynab || {};
   out.ynab = {
     accounts: mergeById(ry.accounts, ly.accounts),
@@ -2594,6 +2842,7 @@ if (!loadFromURLHash()) {
   recalc();
 }
 renderYnab();
+renderPayHistory();
 checkAuth();
 </script>
 </body>
