@@ -259,7 +259,7 @@ async function authedUser(req) {
   return null;
 }
 
-app.get('/api/config', (req, res) => res.json({ googleClientId: GOOGLE_CLIENT_ID, devLogin: DEV_LOGIN }));
+app.get('/api/config', (req, res) => res.json({ googleClientId: GOOGLE_CLIENT_ID, devLogin: DEV_LOGIN, extractAI: !!ANTHROPIC_API_KEY }));
 
 app.get('/api/me', async (req, res) => {
   const u = await authedUser(req);

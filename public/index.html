@@ -548,7 +548,7 @@
   <!-- ── Paycheck history & averages ── -->
   <div class="card">
     <div class="card-title">📈 Paycheck History &amp; Averages</div>
-    <p class="muted-sm" style="margin-bottom:12px">Upload paystubs (photo or PDF) and the app averages your variable Call/Callback/OT pay over time — then can build a starter budget &amp; payoff plan from it.</p>
+    <p class="muted-sm" style="margin-bottom:12px">Upload a paystub (PDF or photo) — it's read <strong>free, right on your device</strong> (nothing leaves it) — and the app averages your variable Call/Callback/OT pay over time, then can build a starter budget &amp; payoff plan from it.</p>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
       <span class="muted-sm">Average over:</span>
       <select id="avg-window" onchange="renderPayHistory()">
@@ -601,7 +601,8 @@
       <div class="field"><label>Call hours</label><input type="number" id="ps-call" step="0.5" placeholder="0" /></div>
       <div class="field"><label>Callback hours</label><input type="number" id="ps-callback" step="0.5" placeholder="0" /></div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;align-items:center">
+      <button id="ps-ai-btn" class="btn btn-ghost" style="display:none;margin-right:auto" onclick="aiReadPaystub()" title="Re-read with the AI for higher accuracy (small cost)">🤖 Try AI reading</button>
       <button class="btn btn-ghost" onclick="closePaystubModal()">Cancel</button>
       <button class="btn btn-primary" onclick="savePaystub()">Save paycheck</button>
     </div>
@@ -2417,38 +2418,126 @@ function fileToBase64(file) {
     fr.readAsDataURL(file);
   });
 }
+// ── on-device reading (free): PDF text via pdf.js, photos via Tesseract OCR ──
+let lastPaystub = null; // { data, mediaType, kind } stashed for the optional AI fallback
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[data-src="${src}"]`)) return resolve();
+    const s = document.createElement('script'); s.src = src; s.async = true; s.dataset.src = src;
+    s.onload = () => resolve(); s.onerror = () => reject(new Error('load failed: ' + src));
+    document.head.appendChild(s);
+  });
+}
+async function pdfToText(arrayBuffer) {
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let text = '';
+  for (let i = 1; i <= Math.min(pdf.numPages, 3); i++) {
+    const content = await (await pdf.getPage(i)).getTextContent();
+    text += content.items.map(it => it.str).join(' ') + '\n';
+  }
+  return { text, pdf };
+}
+async function pdfPageToCanvas(pdf) {
+  const page = await pdf.getPage(1);
+  const viewport = page.getViewport({ scale: 2 });
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width; canvas.height = viewport.height;
+  await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+  return canvas;
+}
+async function ocrImage(source) {
+  await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
+  const { data } = await Tesseract.recognize(source, 'eng');
+  return data.text || '';
+}
+function parseMoney(s) { const m = String(s).replace(/[, ]/g, '').match(/-?\d+(\.\d{1,2})?/); return m ? parseFloat(m[0]) : null; }
+function normDate(s) {
+  if (!s) return null; s = s.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/^([0-1]?\d)[\/\-]([0-3]?\d)[\/\-](\d{2,4})$/);
+  if (m) { let [, mo, d, y] = m; if (y.length === 2) y = '20' + y; return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`; }
+  return null;
+}
+function parsePaystubText(raw) {
+  const lines = (raw || '').replace(/\r/g, '').split('\n').map(l => l.trim()).filter(Boolean);
+  const flat = (raw || '').replace(/\s+/g, ' ');
+  const out = { payDate: null, grossPay: null, netPay: null, regHours: null, otHours: null, callHours: null, callbackHours: null, bonus: null };
+  const moneyOnLine = (re) => {
+    for (const l of lines) { if (re.test(l) && !/year[\s-]*to[\s-]*date|y\.?t\.?d\.?/i.test(l)) { const m = l.match(/[\d,]+\.\d{2}/g); if (m) return parseMoney(m[0]); } }
+    for (const l of lines) { if (re.test(l)) { const m = l.match(/[\d,]+\.\d{2}/g); if (m) return parseMoney(m[0]); } }
+    return null;
+  };
+  out.netPay = moneyOnLine(/net\s*pay/i);
+  out.grossPay = moneyOnLine(/gross(\s*(pay|earnings|wages))?|total\s*gross/i);
+  const dl = flat.match(/(pay\s*date|check\s*date|advice\s*date|period\s*end(ing)?)[:\s]*([0-1]?\d[\/\-][0-3]?\d[\/\-]\d{2,4})/i);
+  out.payDate = normDate(dl ? dl[3] : (flat.match(/\b([0-1]?\d[\/\-][0-3]?\d[\/\-]\d{4})\b/) || [])[1]);
+  return out;
+}
+
 async function onPaystubFile(p, ev) {
   const file = ev.target.files && ev.target.files[0];
   ev.target.value = '';
   if (!file) return;
   const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
-  if (file.size > 14 * 1024 * 1024) { alert('That file is too large (max ~14MB). A phone photo is usually fine.'); return; }
-  showToast('🔎 Reading paystub…');
+  if (file.size > 20 * 1024 * 1024) { alert('That file is large (max ~20MB). A phone photo is usually fine.'); return; }
+  lastPaystub = null;
+  try { lastPaystub = { data: await fileToBase64(file), mediaType: isPdf ? 'application/pdf' : file.type, kind: isPdf ? 'pdf' : 'image' }; } catch (e) {}
+  showToast('🔎 Reading on your device…');
+  let fields = null, method = '';
   try {
-    const data = await fileToBase64(file);
-    const r = await fetch('/api/extract-paystub', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data, mediaType: isPdf ? 'application/pdf' : file.type, kind: isPdf ? 'pdf' : 'image' }),
-    });
-    if (r.status === 503) { alert('Paystub photo-reading isn\'t set up yet. Ask William to add an ANTHROPIC_API_KEY in Railway. Meanwhile, use "+ Add past paycheck" to type one in.'); return; }
-    if (!r.ok) { alert('Couldn\'t read that paystub automatically. Use "+ Add past paycheck" to enter it by hand.'); return; }
-    const { fields } = await r.json();
-    openPaystubModal(p, fields, '🤖 Read from your paystub — double-check the numbers, then save.');
-  } catch (e) { alert('Network error reading the paystub. Try again, or add it by hand.'); }
+    if (isPdf) {
+      const { text, pdf } = await pdfToText(await file.arrayBuffer());
+      if (text.replace(/\s/g, '').length > 40) { fields = parsePaystubText(text); method = 'PDF text'; }
+      else { showToast('🔎 Scanning the page…'); fields = parsePaystubText(await ocrImage(await pdfPageToCanvas(pdf))); method = 'scanned PDF'; }
+    } else {
+      showToast('🔎 Scanning the photo (first time loads the reader)…');
+      fields = parsePaystubText(await ocrImage(file)); method = 'photo';
+    }
+  } catch (e) {
+    openPaystubModal(p, null, '⚠️ Couldn\'t auto-read that file. Enter the numbers by hand' + (appConfig.extractAI ? ', or tap 🤖 Try AI reading.' : '.'));
+    return;
+  }
+  const got = fields && (fields.netPay != null || fields.grossPay != null);
+  openPaystubModal(p, fields || {}, got
+    ? `📄 Read free on your device (${method}) — the file never left your device. Double-check, then save.`
+    : `Read on your device (${method}) but couldn't pick out the amounts. Enter them by hand` + (appConfig.extractAI ? ', or tap 🤖 Try AI reading.' : '.'));
 }
-function addManualPaycheck(p) { openPaystubModal(p, null, 'Enter a past paycheck. Net (take-home) is the number that matters most for averaging.'); }
+function addManualPaycheck(p) { lastPaystub = null; openPaystubModal(p, null, 'Enter a past paycheck. Net (take-home) is the number that matters most for averaging.'); }
 
-function openPaystubModal(p, f, note) {
-  paystubPerson = p;
+function fillPaystubModalFields(f) {
   f = f || {};
-  const sv = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v == null ? '' : v); };
-  sv('ps-date', f.payDate || new Date().toISOString().slice(0, 10));
+  const sv = (id, v) => { if (v != null && v !== '') { const el = document.getElementById(id); if (el) el.value = v; } };
+  if (f.payDate) document.getElementById('ps-date').value = f.payDate;
   sv('ps-net', f.netPay); sv('ps-gross', f.grossPay); sv('ps-bonus', f.bonus);
   sv('ps-reg', f.regHours); sv('ps-ot', f.otHours); sv('ps-call', f.callHours); sv('ps-callback', f.callbackHours);
+}
+function openPaystubModal(p, f, note) {
+  paystubPerson = p;
+  document.getElementById('ps-date').value = new Date().toISOString().slice(0, 10);
+  ['ps-net', 'ps-gross', 'ps-bonus', 'ps-reg', 'ps-ot', 'ps-call', 'ps-callback'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  fillPaystubModalFields(f || {});
   setText('paystub-modal-title', 'Confirm Paycheck · ' + (gs(p === 'p1' ? 'name1' : 'name2') || (p === 'p1' ? 'Partner 1' : 'Partner 2')));
   setText('paystub-modal-note', note || '');
-  document.getElementById('paystub-modal').dataset.source = (f.payDate || f.netPay != null) ? 'upload' : 'manual';
-  document.getElementById('paystub-modal').style.display = 'flex';
+  const modal = document.getElementById('paystub-modal');
+  modal.dataset.source = lastPaystub ? 'upload' : 'manual';
+  const aiBtn = document.getElementById('ps-ai-btn');
+  if (aiBtn) aiBtn.style.display = (appConfig.extractAI && lastPaystub) ? 'inline-flex' : 'none';
+  modal.style.display = 'flex';
+}
+async function aiReadPaystub() {
+  if (!lastPaystub) { alert('Re-upload the paystub to use AI reading.'); return; }
+  showToast('🤖 Reading with AI…');
+  try {
+    const r = await fetch('/api/extract-paystub', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(lastPaystub) });
+    if (r.status === 503) { alert('AI reading isn\'t configured (no API key) — the free on-device read is what you have.'); return; }
+    if (!r.ok) { alert('AI couldn\'t read it either. Enter the numbers by hand.'); return; }
+    const { fields } = await r.json();
+    fillPaystubModalFields(fields);
+    setText('paystub-modal-note', '🤖 Filled by AI — double-check, then save.');
+    showToast('🤖 AI filled the form');
+  } catch (e) { alert('Network error during AI reading.'); }
 }
 function closePaystubModal() { document.getElementById('paystub-modal').style.display = 'none'; }
 function savePaystub() {
